@@ -26,5 +26,12 @@ module.exports = {
       }),
     },
   },
+  daisyui: {
+    themes: true, // Load component classes + CSS-defined themes
+    styled: true,
+    base: true,
+    utils: true,
+    logs: true,
+  },
   plugins: [typography, daisyuiPlugin],
 };
