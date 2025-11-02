@@ -16,12 +16,12 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile  # Use production Dockerfile, not Dockerfile.dev
+      dockerfile: Dockerfile.dev  # Use dev Dockerfile for development
     environment:
       DATABASE_URL: postgres://checktick:checktick@db:5432/checktick
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}  # Should be set via .env
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DEBUG: ${DEBUG:-False}  # Default to False for production
+      DEBUG: ${DEBUG:-True}  # Default to True for development
       EXTERNAL_DATASET_API_URL: ${EXTERNAL_DATASET_API_URL:-https://api.rcpch.ac.uk}
       EXTERNAL_DATASET_API_KEY: ${EXTERNAL_DATASET_API_KEY:-}
       # OIDC Configuration
@@ -39,7 +39,9 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - media_data:/app/media  # Only mount media, not entire app directory
+      - .:/app  # Mount entire app directory for live code changes
+      - /app/node_modules  # Prevent node_modules from being overwritten
+      - media_data:/app/media
 
 volumes:
   db_data:

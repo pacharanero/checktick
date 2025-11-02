@@ -191,6 +191,15 @@
   [data-drag-ignore] {
     cursor: pointer;
   }
+
+  /* DaisyUI 5 doesn't generate radio-primary/checkbox-primary classes, so we add them manually */
+  .radio-primary {
+    color: var(--color-primary);
+  }
+
+  .checkbox-primary {
+    color: var(--color-primary);
+  }
 }
 
 /* stylelint-disable at-rule-no-unknown */
