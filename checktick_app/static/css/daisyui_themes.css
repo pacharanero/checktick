@@ -1,9 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --daisyui-themes: wireframe, business;
+}
 
 /* Safari needs registered custom properties for DaisyUI radial progress animations. */
-@property --value {
+/* @property --value {
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
@@ -13,7 +17,7 @@
   syntax: "<percentage>";
   inherits: false;
   initial-value: 0%;
-}
+} */
 
 @layer base {
   [data-theme="checktick"],
