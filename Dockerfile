@@ -16,7 +16,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --only main --no-interaction --no-ansi --no-root
 
 # Build CSS
-COPY package.json tailwind.config.js postcss.config.js ./
+COPY package.json ./
 RUN npm install --no-audit --no-fund
 
 COPY checktick_app ./checktick_app
