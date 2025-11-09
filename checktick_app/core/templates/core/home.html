@@ -102,11 +102,11 @@
         <div class="h5 text-secondary">{% trans "Audit logs for compliance and data governance" %}</div>
         <div class="card-actions justify-start mt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="{% url 'core:docs_page' slug='data-governance-security' %}">{% trans "Security documentation" %}</a>
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance-policy' %}">{% trans "Data policy" %}</a>
+            <a class="btn btn-sm btn-primary" href="{% url 'core:docs_page' slug='data-governance' %}#security-best-practices">{% trans "Security documentation" %}</a>
+            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance' %}#data-policy">{% trans "Data policy" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance-security' %}">{% trans "Learn about security" %}</a>
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance-policy' %}">{% trans "Data policy" %}</a>
+            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance' %}#security-best-practices">{% trans "Learn about security" %}</a>
+            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance' %}#data-policy">{% trans "Data policy" %}</a>
           {% endif %}
         </div>
       </div>

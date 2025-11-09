@@ -613,6 +613,37 @@ def _discover_doc_pages():
             # Make page accessible via URL but don't add to sidebar navigation
             pages[slug] = md_file
 
+    # Hide old consolidated files from sidebar (accessible via URL only)
+    # These have been consolidated into comprehensive guides but remain accessible for backward compatibility
+    hidden_files = [
+        # Old data governance files (consolidated into data-governance.md)
+        "data-governance-overview",
+        "data-governance-policy",
+        "data-governance-implementation",
+        "data-governance-export",
+        "data-governance-retention",
+        "data-governance-security",
+        "data-governance-special-cases",
+        # Old encryption files (consolidated into encryption.md)
+        "encryption-quick-reference",
+        "encryption-individual-users",
+        "encryption-organisation-users",
+        # Old getting-started files (consolidated into getting-started.md)
+        "getting-started-account-types",
+        "getting-started-api",
+    ]
+    
+    for hidden_slug in hidden_files:
+        hidden_path = DOCS_DIR / f"{hidden_slug}.md"
+        if hidden_path.exists() and hidden_slug not in pages:
+            # Make accessible via URL but don't add to sidebar
+            pages[hidden_slug] = hidden_path
+        # Remove from all categories if it was auto-discovered
+        for category_name in categorized.keys():
+            categorized[category_name] = [
+                p for p in categorized[category_name] if p.get("slug") != hidden_slug
+            ]
+
     return pages, categorized
 
 
