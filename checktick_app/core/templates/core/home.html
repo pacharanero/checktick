@@ -51,62 +51,68 @@
 
 
 <section class="mt-12">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-  <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors">
-    <div class="card-body">
-        <div class="flex items-center gap-3">
-          <span class="text-base-content/80">{% include "components/icons/hammer_wrench.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-base-content">{% trans "Build" %}</h3>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+  <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors flex flex-col">
+    <div class="card-body flex flex-col flex-1">
+        <div class="flex-1">
+          <div class="flex items-center gap-3">
+            <span class="text-base-content/80">{% include "components/icons/hammer_wrench.html" with classes="w-8 h-8" %}</span>
+            <h3 class="card-title text-base-content">{% trans "Build" %}</h3>
+          </div>
+          <div class="h5 text-secondary">{% trans "Drag-and-drop question blocks" %}</div>
+          <div class="h5 text-secondary">{% trans "custom designs for each survey " %}</div>
+          <div class="h5 text-secondary">{% trans "Conditional branching logic" %}</div>
+          <div class="h5 text-secondary">{% trans "select from a range of pre-built question templates optimized for the NHS." %}</div>
         </div>
-        <div class="h5 text-secondary">{% trans "Drag-and-drop question blocks" %}</div>
-        <div class="h5 text-secondary">{% trans "custom designs for each survey " %}</div>
-        <div class="h5 text-secondary">{% trans "Conditional branching logic" %}</div>
-        <div class="h5 text-secondary">{% trans "select from a range of pre-built question templates optimized for the NHS." %}</div>
-        <div class="card-actions justify-start mt-2">
+        <div class="card-actions justify-end pt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="{% url 'surveys:create' %}">{% trans "Create a survey" %}</a>
+            <a class="btn btn-sm btn-secondary" href="{% url 'surveys:create' %}">{% trans "Create a survey" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-primary" href="/accounts/login/">{% trans "Login to start" %}</a>
+            <a class="btn btn-sm btn-secondary" href="/accounts/login/">{% trans "Login to start" %}</a>
           {% endif %}
         </div>
       </div>
     </div>
 
-  <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors">
-    <div class="card-body">
-        <div class="flex items-center gap-3">
-          <span class="text-base-content/80">{% include "components/icons/documents.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-base-content">{% trans "Distribute" %}</h3>
+  <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors flex flex-col">
+    <div class="card-body flex flex-col flex-1">
+        <div class="flex-1">
+          <div class="flex items-center gap-3">
+            <span class="text-base-content/80">{% include "components/icons/documents.html" with classes="w-8 h-8" %}</span>
+            <h3 class="card-title text-base-content">{% trans "Distribute" %}</h3>
+          </div>
+          <div class="h5 text-secondary">{% trans "Publish surveys via email, SMS, or web links." %}</div>
+          <div class="h5 text-secondary">{% trans "Track responses in real-time." %}</div>
         </div>
-        <div class="h5 text-secondary">{% trans "Publish surveys via email, SMS, or web links." %}</div>
-        <div class="h5 text-secondary">{% trans "Track responses in real-time." %}</div>
-        <div class="card-actions justify-start mt-2">
+        <div class="card-actions justify-end pt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="/surveys/">{% trans "Manage surveys" %}</a>
+            <a class="btn btn-sm btn-secondary" href="/surveys/">{% trans "Manage surveys" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='surveys' %}">{% trans "Explore docs" %}</a>
+            <a class="btn btn-sm btn-secondary" href="{% url 'core:docs_page' slug='surveys' %}">{% trans "Explore docs" %}</a>
           {% endif %}
         </div>
       </div>
     </div>
 
-  <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors">
-    <div class="card-body">
-        <div class="flex items-center gap-3">
-          <span class="text-base-content/80">{% include "components/icons/shield-check.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-base-content">{% trans "Secure" %}</h3>
+    <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors flex flex-col">
+    <div class="card-body flex flex-col flex-1">
+        <div class="flex-1">
+          <div class="flex items-center gap-3">
+            <span class="text-base-content/80">{% include "components/icons/shield-check.html" with classes="w-8 h-8" %}</span>
+            <h3 class="card-title text-base-content">{% trans "Secure" %}</h3>
+          </div>
+          <div class="h5 text-secondary">{% trans "End-to-end encryption for patient data" %}</div>
+          <div class="h5 text-secondary">{% trans "Role-based access control (RBAC)" %}</div>
+          <div class="h5 text-secondary">{% trans "GDPR, NHS DSPT, and Caldicott compliance" %}</div>
+          <div class="h5 text-secondary">{% trans "Audit logs for compliance and data governance" %}</div>
         </div>
-        <div class="h5 text-secondary">{% trans "End-to-end encryption for patient data" %}</div>
-        <div class="h5 text-secondary">{% trans "Role-based access control (RBAC)" %}</div>
-        <div class="h5 text-secondary">{% trans "GDPR, NHS DSPT, and Caldicott compliance" %}</div>
-        <div class="h5 text-secondary">{% trans "Audit logs for compliance and data governance" %}</div>
-        <div class="card-actions justify-start mt-2">
+        <div class="card-actions justify-end pt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="{% url 'core:docs_page' slug='data-governance' %}#security-best-practices">{% trans "Security documentation" %}</a>
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance' %}#data-policy">{% trans "Data policy" %}</a>
+            <a class="btn btn-sm btn-secondary" href="{% url 'core:docs_page' slug='data-governance' %}#security-best-practices">{% trans "Security documentation" %}</a>
+            <a class="btn btn-sm btn-outline" href="{% url 'core:docs_page' slug='data-governance' %}#data-policy">{% trans "Data policy" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance' %}#security-best-practices">{% trans "Learn about security" %}</a>
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='data-governance' %}#data-policy">{% trans "Data policy" %}</a>
+            <a class="btn btn-sm btn-secondary" href="{% url 'core:docs_page' slug='data-governance' %}#security-best-practices">{% trans "Learn about security" %}</a>
+            <a class="btn btn-sm btn-outline" href="{% url 'core:docs_page' slug='data-governance' %}#data-policy">{% trans "Data policy" %}</a>
           {% endif %}
         </div>
       </div>

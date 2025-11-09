@@ -47,7 +47,8 @@
 
   function applyTheme(pref) {
     const theme = effectiveTheme(normalize(pref) || pref);
-    htmlEl.setAttribute("data-theme", theme);
+    const preset = themeToPreset(theme);
+    htmlEl.setAttribute("data-theme", preset);
   }
 
   function readSaved() {
