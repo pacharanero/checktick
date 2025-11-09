@@ -124,11 +124,11 @@ def profile(request):
                 defaults={"role": OrganizationMembership.Role.ADMIN},
             )
         messages.success(
-                request,
-                _(
-                    "Organisation created. You are now an organisation admin and can host surveys and build a team."
-                ),
-            )
+            request,
+            _(
+                "Organisation created. You are now an organisation admin and can host surveys and build a team."
+            ),
+        )
         return redirect("surveys:org_users", org_id=org.id)
     if request.method == "POST" and request.POST.get("action") == "reset_org_theme":
         # Handle organization theme reset (org owners only)
@@ -144,7 +144,9 @@ def profile(request):
             logger.info(
                 f"Organization theme reset to defaults by {request.user.username} (org_id={org.id})"
             )
-            messages.success(request, _("Organization theme reset to platform defaults."))
+            messages.success(
+                request, _("Organization theme reset to platform defaults.")
+            )
         return redirect("core:profile")
     if request.method == "POST" and request.POST.get("action") == "update_org_theme":
         # Handle organization theme update (org owners only)
@@ -537,7 +539,10 @@ DOC_CATEGORIES = {
 DOC_PAGE_OVERRIDES = {
     "index": {"file": "README.md", "category": None},  # Special: index page
     "contributing": {"file": REPO_ROOT / "CONTRIBUTING.md", "category": "other"},
-    "themes": {"file": "themes.md", "category": "api"},  # Developer guide for theme implementation
+    "themes": {
+        "file": "themes.md",
+        "category": "api",
+    },  # Developer guide for theme implementation
 }
 
 
@@ -631,8 +636,16 @@ def _discover_doc_pages():
         # Old getting-started files (consolidated into getting-started.md)
         "getting-started-account-types",
         "getting-started-api",
+        # Old self-hosting files (consolidated into self-hosting.md)
+        "self-hosting-quickstart",
+        "self-hosting-production",
+        "self-hosting-database",
+        "self-hosting-configuration",
+        "self-hosting-scheduled-tasks",
+        "self-hosting-backup",
+        "self-hosting-themes",
     ]
-    
+
     for hidden_slug in hidden_files:
         hidden_path = DOCS_DIR / f"{hidden_slug}.md"
         if hidden_path.exists() and hidden_slug not in pages:

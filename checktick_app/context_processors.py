@@ -1,12 +1,16 @@
+import logging
 import os
 from pathlib import Path
 import subprocess
-import logging
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from checktick_app.surveys.models import OrganizationMembership, SurveyMembership, Organization
+from checktick_app.surveys.models import (
+    Organization,
+    OrganizationMembership,
+    SurveyMembership,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -246,12 +250,20 @@ def branding(request):
         except Exception:
             pass
 
-    if user_org and (user_org.default_theme or user_org.theme_preset_light or user_org.theme_preset_dark):
+    if user_org and (
+        user_org.default_theme
+        or user_org.theme_preset_light
+        or user_org.theme_preset_dark
+    ):
         # Organization has custom theme settings - apply cascade
         # Use org theme if set, otherwise fall back to platform default
-        preset_light = user_org.theme_preset_light or brand.get("theme_preset_light", "wireframe")
-        preset_dark = user_org.theme_preset_dark or brand.get("theme_preset_dark", "business")
-        
+        preset_light = user_org.theme_preset_light or brand.get(
+            "theme_preset_light", "wireframe"
+        )
+        preset_dark = user_org.theme_preset_dark or brand.get(
+            "theme_preset_dark", "business"
+        )
+
         logger.debug(
             f"Applying org theme cascade for org_id={user_org.id}: "
             f"default_theme={user_org.default_theme}, "

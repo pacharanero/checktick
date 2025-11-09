@@ -622,7 +622,7 @@ def test_non_owner_cannot_set_organization_theme():
     client.force_login(non_owner)
 
     # Non-owner attempts to update org theme
-    response = client.post(
+    _ = client.post(
         "/profile",
         {
             "action": "update_org_theme",
@@ -764,7 +764,7 @@ def test_non_owner_cannot_reset_organization_theme():
     client.force_login(non_owner)
 
     # Non-owner attempts to reset org theme
-    response = client.post("/profile", {"action": "reset_org_theme"})
+    _ = client.post("/profile", {"action": "reset_org_theme"})
 
     # Verify org theme was NOT cleared
     org.refresh_from_db()
@@ -840,7 +840,7 @@ def test_profile_shows_platform_default_label():
     owner = User.objects.create_user(
         username="orgowner", email="owner@test.com", password=TEST_PASSWORD
     )
-    org = Organization.objects.create(owner=owner, name="Test Org")
+    _ = Organization.objects.create(owner=owner, name="Test Org")
 
     SiteBranding.objects.create(
         theme_preset_light="wireframe", theme_preset_dark="business"

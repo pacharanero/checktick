@@ -24,7 +24,7 @@
           </h3>
           <p class="opacity-80">{% trans "Quick start guides to get CheckTick running in minutes using Docker." %}</p>
           <div class="card-actions mt-4">
-            <a href="{% url 'core:docs_page' slug='self-hosting-quickstart' %}" class="btn btn-primary btn-sm">
+            <a href="{% url 'core:docs_page' slug='self-hosting' %}#quick-start" class="btn btn-primary btn-sm">
               {% trans "Quickstart Guide" %}
             </a>
           </div>
@@ -39,7 +39,7 @@
           </h3>
           <p class="opacity-80">{% trans "Deploy CheckTick to production with best practices for security and performance." %}</p>
           <div class="card-actions mt-4">
-            <a href="{% url 'core:docs_page' slug='self-hosting-production' %}" class="btn btn-accent btn-sm">
+            <a href="{% url 'core:docs_page' slug='self-hosting' %}#production-deployment" class="btn btn-accent btn-sm">
               {% trans "Production Guide" %}
             </a>
           </div>
@@ -54,7 +54,7 @@
           </h3>
           <p class="opacity-80">{% trans "Configure environment variables, database settings, and customize your installation." %}</p>
           <div class="card-actions mt-4">
-            <a href="{% url 'core:docs_page' slug='self-hosting-configuration' %}" class="btn btn-secondary btn-sm">
+            <a href="{% url 'core:docs_page' slug='self-hosting' %}#configuration-reference" class="btn btn-secondary btn-sm">
               {% trans "Configuration Docs" %}
             </a>
           </div>
@@ -71,10 +71,10 @@
           </h3>
           <p class="opacity-80">{% trans "Set up PostgreSQL, manage migrations, and configure automated backups." %}</p>
           <div class="card-actions mt-4">
-            <a href="{% url 'core:docs_page' slug='self-hosting-database' %}" class="btn btn-ghost btn-sm">
+            <a href="{% url 'core:docs_page' slug='self-hosting' %}#database-options" class="btn btn-ghost btn-sm">
               {% trans "Database Guide" %}
             </a>
-            <a href="{% url 'core:docs_page' slug='self-hosting-backup' %}" class="btn btn-ghost btn-sm">
+            <a href="{% url 'core:docs_page' slug='self-hosting' %}#backup-and-restore" class="btn btn-ghost btn-sm">
               {% trans "Backup Guide" %}
             </a>
           </div>

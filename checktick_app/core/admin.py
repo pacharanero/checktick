@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import SiteBranding, UserEmailPreferences, UserLanguagePreference
 
 
@@ -6,7 +7,13 @@ from .models import SiteBranding, UserEmailPreferences, UserLanguagePreference
 class SiteBrandingAdmin(admin.ModelAdmin):
     """Admin interface for platform-level branding and theme settings."""
 
-    list_display = ("id", "default_theme", "theme_preset_light", "theme_preset_dark", "updated_at")
+    list_display = (
+        "id",
+        "default_theme",
+        "theme_preset_light",
+        "theme_preset_dark",
+        "updated_at",
+    )
     fieldsets = (
         (
             "Theme Settings",
@@ -59,8 +66,17 @@ class SiteBrandingAdmin(admin.ModelAdmin):
 class UserEmailPreferencesAdmin(admin.ModelAdmin):
     """Admin interface for user email notification preferences."""
 
-    list_display = ("user", "send_team_invitation_email", "send_survey_invitation_email", "notify_on_critical")
-    list_filter = ("send_team_invitation_email", "send_survey_invitation_email", "notify_on_critical")
+    list_display = (
+        "user",
+        "send_team_invitation_email",
+        "send_survey_invitation_email",
+        "notify_on_critical",
+    )
+    list_filter = (
+        "send_team_invitation_email",
+        "send_survey_invitation_email",
+        "notify_on_critical",
+    )
     search_fields = ("user__username", "user__email")
     readonly_fields = ("created_at", "updated_at")
 
