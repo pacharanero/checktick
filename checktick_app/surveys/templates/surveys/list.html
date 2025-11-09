@@ -23,7 +23,7 @@
               </div>
               <div class="min-w-0 w-full">
                 <div class="flex items-center gap-2 min-w-0">
-                  <div class="font-medium leading-tight truncate">{{ s.name }}</div>
+                  <a href="/surveys/{{ s.slug }}/groups/" class="font-medium leading-tight truncate link link-accent">{{ s.name }}</a>
                   <span class="badge badge-primary badge-outline whitespace-nowrap">{{ s.get_status_display|default:s.status }}</span>
                   {% if s.status == 'published' %}
                     {% with days=s.days_remaining %}
@@ -66,7 +66,6 @@
                   </a>
                 {% endif %}
                 <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/dashboard/">{% trans "Dashboard" %}</a>
-                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">{% trans "Groups" %}</a>
                 <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">{% trans "Preview" %}</a>
                 <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">{% trans "Import" %}</a>
                 {% if s.status == 'published' %}

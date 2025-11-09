@@ -31,7 +31,7 @@
   {% trans "Surveys" as bc_surveys %}
   {% trans "Survey Dashboard" as bc_survey_dashboard %}
   {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
-  <h2>{{ survey.name }}</h2>
+  <h2><a href="/surveys/{{ survey.slug }}/groups/" class="link link-hover">{{ survey.name }}</a></h2>
 </div>
 
 <div class="flex flex-wrap gap-2 items-center mb-2">
@@ -57,7 +57,6 @@
     </a>
   {% endif %}
   <a class="btn btn-primary btn-sm flex-shrink-0" href="/surveys/{{ survey.slug }}/preview/">{% trans "Survey Preview (read-only)" %}</a>
-  <a class="btn btn-primary btn-sm flex-shrink-0" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage question groups" %}</a>
   {% if can_manage_users %}
   <a class="btn btn-primary btn-sm flex-shrink-0" href="/surveys/{{ survey.slug }}/users/">{% trans "Manage collaborators" %}</a>
   {% endif %}
