@@ -6,6 +6,7 @@ This module provides functions to:
 - Parse custom theme configuration objects
 - Convert theme data to injectable CSS
 """
+
 from __future__ import annotations
 
 import re
@@ -120,7 +121,9 @@ def parse_custom_theme_config(config_text: str) -> Optional[Dict[str, str]]:
     return theme_vars if theme_vars else None
 
 
-def theme_vars_to_css(theme_vars: Dict[str, str], color_scheme: Optional[str] = None) -> str:
+def theme_vars_to_css(
+    theme_vars: Dict[str, str], color_scheme: Optional[str] = None
+) -> str:
     """
     Convert theme variables dictionary to CSS variable declarations.
 

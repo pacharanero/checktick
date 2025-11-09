@@ -41,8 +41,9 @@ except ImportError:
         """No-op fallback if theme utils or migrations are unavailable."""
         return s
 
+
 try:
-    from .themes import LIGHT_THEMES, DARK_THEMES, generate_theme_css_for_brand
+    from .themes import DARK_THEMES, LIGHT_THEMES, generate_theme_css_for_brand
 except ImportError:
     LIGHT_THEMES = []
     DARK_THEMES = []
@@ -143,8 +144,12 @@ def profile(request):
             sb.font_css_url = (request.POST.get("font_css_url") or "").strip()
 
             # Save theme presets
-            sb.theme_preset_light = (request.POST.get("theme_preset_light") or "wireframe").strip()
-            sb.theme_preset_dark = (request.POST.get("theme_preset_dark") or "business").strip()
+            sb.theme_preset_light = (
+                request.POST.get("theme_preset_light") or "wireframe"
+            ).strip()
+            sb.theme_preset_dark = (
+                request.POST.get("theme_preset_dark") or "business"
+            ).strip()
 
             # Get custom CSS (optional - overrides preset if provided)
             raw_light = request.POST.get("theme_light_css") or ""
@@ -154,10 +159,7 @@ def profile(request):
             if generate_theme_css_for_brand:
                 try:
                     generated_light, generated_dark = generate_theme_css_for_brand(
-                        sb.theme_preset_light,
-                        sb.theme_preset_dark,
-                        raw_light,
-                        raw_dark
+                        sb.theme_preset_light, sb.theme_preset_dark, raw_light, raw_dark
                     )
                     sb.theme_light_css = generated_light
                     sb.theme_dark_css = generated_dark
@@ -239,8 +241,12 @@ def profile(request):
         email_prefs_form = UserEmailPreferencesForm(instance=prefs)
 
     # Prepare theme choices for template
-    light_theme_choices = [(theme, theme) for theme in LIGHT_THEMES] if LIGHT_THEMES else []
-    dark_theme_choices = [(theme, theme) for theme in DARK_THEMES] if DARK_THEMES else []
+    light_theme_choices = (
+        [(theme, theme) for theme in LIGHT_THEMES] if LIGHT_THEMES else []
+    )
+    dark_theme_choices = (
+        [(theme, theme) for theme in DARK_THEMES] if DARK_THEMES else []
+    )
 
     return render(
         request,

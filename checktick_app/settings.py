@@ -14,8 +14,14 @@ env = environ.Env(
     BRAND_TITLE=(str, "CheckTick"),
     BRAND_ICON_URL=(str, "/static/icons/checktick-default.svg"),
     BRAND_THEME=(str, "checktick-light"),
-    BRAND_THEME_PRESET_LIGHT=(str, "wireframe"),  # Default daisyUI preset for checktick-light
-    BRAND_THEME_PRESET_DARK=(str, "business"),    # Default daisyUI preset for checktick-dark
+    BRAND_THEME_PRESET_LIGHT=(
+        str,
+        "wireframe",
+    ),  # Default daisyUI preset for checktick-light
+    BRAND_THEME_PRESET_DARK=(
+        str,
+        "business",
+    ),  # Default daisyUI preset for checktick-dark
     BRAND_FONT_HEADING=(
         str,
         "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",

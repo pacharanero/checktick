@@ -213,7 +213,7 @@ def branding(request):
                         "icon_url_dark": (sb.icon_url_dark or dark_icon_href) or None,
                         "theme_name": sb.default_theme or brand["theme_name"],
                         "theme_preset_light": preset_light,  # Actual daisyUI preset name
-                        "theme_preset_dark": preset_dark,    # Actual daisyUI preset name
+                        "theme_preset_dark": preset_dark,  # Actual daisyUI preset name
                         "font_heading": sb.font_heading or brand["font_heading"],
                         "font_body": sb.font_body or brand["font_body"],
                         "font_css_url": sb.font_css_url or brand["font_css_url"],

@@ -9,6 +9,7 @@ Tests cover:
 - JavaScript theme mapping (checktick-light/dark → actual presets)
 - Environment variable defaults
 """
+
 from django.contrib.auth.models import User
 from django.test import Client, override_settings
 from django.urls import reverse
@@ -16,11 +17,11 @@ import pytest
 
 from checktick_app.core.models import SiteBranding
 from checktick_app.core.themes import (
-    LIGHT_THEMES,
     DARK_THEMES,
+    LIGHT_THEMES,
+    generate_theme_css_for_brand,
     get_theme_color_scheme,
     parse_custom_theme_config,
-    generate_theme_css_for_brand,
 )
 from checktick_app.surveys.models import Survey
 
@@ -83,9 +84,7 @@ def test_parse_custom_theme_config_valid():
 
 def test_generate_theme_css_for_brand_defaults():
     """Test theme CSS generation with default presets and no custom CSS."""
-    light_css, dark_css = generate_theme_css_for_brand(
-        "wireframe", "business", "", ""
-    )
+    light_css, dark_css = generate_theme_css_for_brand("wireframe", "business", "", "")
     # Should generate comments mentioning the presets
     assert "wireframe" in light_css
     assert "business" in dark_css
@@ -97,7 +96,7 @@ def test_generate_theme_css_for_brand_custom_css():
         preset_light="wireframe",
         preset_dark="business",
         custom_css_light="--color-primary: oklch(65% 0.21 25); --p: 65% 0.21 25;",
-        custom_css_dark="--color-primary: oklch(35% 0.15 280); --p: 35% 0.15 280;"
+        custom_css_dark="--color-primary: oklch(35% 0.15 280); --p: 35% 0.15 280;",
     )
 
     # Should include color-scheme declarations
@@ -127,8 +126,7 @@ def test_sitebranding_default_presets():
 def test_sitebranding_custom_presets():
     """Test setting custom theme presets in SiteBranding."""
     sb = SiteBranding.objects.create(
-        theme_preset_light="cupcake",
-        theme_preset_dark="dracula"
+        theme_preset_light="cupcake", theme_preset_dark="dracula"
     )
     assert sb.theme_preset_light == "cupcake"
     assert sb.theme_preset_dark == "dracula"
@@ -147,8 +145,7 @@ def test_sitebranding_custom_css_fields():
     """
 
     sb = SiteBranding.objects.create(
-        theme_light_css=custom_light_css,
-        theme_dark_css=custom_dark_css
+        theme_light_css=custom_light_css, theme_dark_css=custom_dark_css
     )
 
     assert sb.theme_light_css == custom_light_css
@@ -179,10 +176,7 @@ def test_home_page_default_theme_preset():
 @pytest.mark.django_db
 def test_home_page_custom_theme_preset():
     """Test that home page renders with custom theme preset."""
-    SiteBranding.objects.create(
-        theme_preset_light="emerald",
-        theme_preset_dark="night"
-    )
+    SiteBranding.objects.create(theme_preset_light="emerald", theme_preset_dark="night")
 
     client = Client()
     response = client.get("/home")
@@ -196,8 +190,7 @@ def test_home_page_custom_theme_preset():
 def test_theme_preset_meta_tag():
     """Test that templates include meta tag with theme preset mapping."""
     SiteBranding.objects.create(
-        theme_preset_light="cupcake",
-        theme_preset_dark="forest"
+        theme_preset_light="cupcake", theme_preset_dark="forest"
     )
 
     client = Client()
@@ -213,8 +206,7 @@ def test_custom_theme_css_injection():
     """Test that custom CSS is injected into the page."""
     custom_css = "--color-primary: oklch(65% 0.21 25);"
     SiteBranding.objects.create(
-        theme_preset_light="wireframe",
-        theme_light_css=custom_css
+        theme_preset_light="wireframe", theme_light_css=custom_css
     )
 
     client = Client()
@@ -232,7 +224,7 @@ def test_theme_css_for_both_light_and_dark():
         theme_preset_light="wireframe",
         theme_preset_dark="business",
         theme_light_css="--color-primary: oklch(65% 0.21 25);",
-        theme_dark_css="--color-primary: oklch(35% 0.15 280);"
+        theme_dark_css="--color-primary: oklch(35% 0.15 280);",
     )
 
     client = Client()
@@ -254,9 +246,7 @@ def test_theme_css_for_both_light_and_dark():
 def test_profile_page_theme_dropdowns():
     """Test that profile page shows theme preset dropdown selectors."""
     user = User.objects.create_superuser(
-        username="admin",
-        email="admin@test.com",
-        password=TEST_PASSWORD
+        username="admin", email="admin@test.com", password=TEST_PASSWORD
     )
     SiteBranding.objects.create()
 
@@ -281,9 +271,7 @@ def test_profile_page_theme_dropdowns():
 def test_profile_page_shows_20_light_themes():
     """Test that profile page includes all 20 light theme options."""
     user = User.objects.create_superuser(
-        username="admin",
-        email="admin@test.com",
-        password=TEST_PASSWORD
+        username="admin", email="admin@test.com", password=TEST_PASSWORD
     )
     SiteBranding.objects.create()
 
@@ -302,9 +290,7 @@ def test_profile_page_shows_20_light_themes():
 def test_profile_page_shows_12_dark_themes():
     """Test that profile page includes all 12 dark theme options."""
     user = User.objects.create_superuser(
-        username="admin",
-        email="admin@test.com",
-        password=TEST_PASSWORD
+        username="admin", email="admin@test.com", password=TEST_PASSWORD
     )
     SiteBranding.objects.create()
 
@@ -323,13 +309,10 @@ def test_profile_page_shows_12_dark_themes():
 def test_update_theme_preset_via_profile():
     """Test that theme presets can be viewed in profile."""
     user = User.objects.create_superuser(
-        username="admin",
-        email="admin@test.com",
-        password=TEST_PASSWORD
+        username="admin", email="admin@test.com", password=TEST_PASSWORD
     )
-    sb = SiteBranding.objects.create(
-        theme_preset_light="wireframe",
-        theme_preset_dark="business"
+    _ = SiteBranding.objects.create(
+        theme_preset_light="wireframe", theme_preset_dark="business"
     )
 
     client = Client()
@@ -356,6 +339,7 @@ def test_environment_variable_light_preset():
     # Note: In practice, SiteBranding is often auto-created with defaults
     # This test documents that environment variables exist for configuration
     from django.conf import settings
+
     assert settings.BRAND_THEME_PRESET_LIGHT == "corporate"
 
 
@@ -366,19 +350,18 @@ def test_environment_variable_dark_preset():
     # Note: In practice, SiteBranding is often auto-created with defaults
     # This test documents that environment variables exist for configuration
     from django.conf import settings
+
     assert settings.BRAND_THEME_PRESET_DARK == "dracula"
 
 
 @override_settings(
-    BRAND_THEME_PRESET_LIGHT="retro",
-    BRAND_THEME_PRESET_DARK="synthwave"
+    BRAND_THEME_PRESET_LIGHT="retro", BRAND_THEME_PRESET_DARK="synthwave"
 )
 @pytest.mark.django_db
 def test_sitebranding_overrides_environment():
     """Test that SiteBranding database values override environment variables."""
     SiteBranding.objects.create(
-        theme_preset_light="cupcake",
-        theme_preset_dark="forest"
+        theme_preset_light="cupcake", theme_preset_dark="forest"
     )
 
     client = Client()
@@ -399,9 +382,7 @@ def test_sitebranding_overrides_environment():
 def test_survey_style_field_for_custom_overrides():
     """Test that Survey model uses style JSONField for customization."""
     user = User.objects.create_user(
-        username="creator",
-        email="creator@test.com",
-        password=TEST_PASSWORD
+        username="creator", email="creator@test.com", password=TEST_PASSWORD
     )
 
     survey = Survey.objects.create(
@@ -411,8 +392,8 @@ def test_survey_style_field_for_custom_overrides():
         style={
             "custom_css": ":root { --color-primary: oklch(50% 0.2 180); }",
             "theme_light": "cupcake",
-            "theme_dark": "forest"
-        }
+            "theme_dark": "forest",
+        },
     )
 
     assert survey.style is not None
@@ -426,18 +407,14 @@ def test_survey_style_field_for_custom_overrides():
 def test_survey_dashboard_with_custom_style():
     """Test that survey-level custom styles can be stored in style JSON."""
     user = User.objects.create_user(
-        username="creator",
-        email="creator@test.com",
-        password=TEST_PASSWORD
+        username="creator", email="creator@test.com", password=TEST_PASSWORD
     )
 
     survey = Survey.objects.create(
         owner=user,
         name="Branded Survey",
         slug="branded-survey",
-        style={
-            "custom_css": "--color-primary: oklch(60% 0.25 45);"
-        }
+        style={"custom_css": "--color-primary: oklch(60% 0.25 45);"},
     )
 
     # Verify style field can store custom CSS
@@ -488,13 +465,10 @@ def test_theme_toggle_javascript_loaded():
 def test_admin_page_uses_site_theme():
     """Test that Django admin pages use the configured site theme."""
     user = User.objects.create_superuser(
-        username="admin",
-        email="admin@test.com",
-        password=TEST_PASSWORD
+        username="admin", email="admin@test.com", password=TEST_PASSWORD
     )
     SiteBranding.objects.create(
-        theme_preset_light="corporate",
-        theme_preset_dark="luxury"
+        theme_preset_light="corporate", theme_preset_dark="luxury"
     )
 
     client = Client()
@@ -524,7 +498,7 @@ def test_missing_sitebranding_uses_defaults():
     content = response.content.decode()
 
     # Should fall back to default wireframe/business
-    assert 'data-theme=' in content
+    assert "data-theme=" in content
 
 
 @pytest.mark.django_db
@@ -532,7 +506,7 @@ def test_invalid_custom_css_doesnt_break_page():
     """Test that invalid custom CSS doesn't break page rendering."""
     SiteBranding.objects.create(
         theme_light_css="invalid css garbage {{ }} ;;;",
-        theme_dark_css="more-invalid: stuff;"
+        theme_dark_css="more-invalid: stuff;",
     )
 
     client = Client()
@@ -549,7 +523,7 @@ def test_empty_custom_css_fields():
         theme_preset_light="wireframe",
         theme_preset_dark="business",
         theme_light_css="",
-        theme_dark_css=""
+        theme_dark_css="",
     )
 
     client = Client()
