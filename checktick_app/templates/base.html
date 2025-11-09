@@ -72,6 +72,7 @@
               <li><a href="{% url 'core:docs_index' %}">{% trans "Documentation" %}</a></li>
               <li><a href="{% url 'core:hosting' %}">{% trans "Hosting" %}</a></li>
             {% else %}
+              <li><a href="{% url 'core:pricing' %}">{% trans "Pricing" %}</a></li>
               <li><a href="{% url 'core:docs_index' %}">{% trans "Documentation" %}</a></li>
               <li><a href="{% url 'core:hosting' %}">{% trans "Hosting" %}</a></li>
               <li><a href="/accounts/login/">{% trans "Login" %}</a></li>
@@ -113,6 +114,7 @@
             <li><a href="{% url 'core:docs_index' %}">{% trans "Documentation" %}</a></li>
             <li><a href="{% url 'core:hosting' %}">{% trans "Hosting" %}</a></li>
           {% else %}
+            <li><a href="{% url 'core:pricing' %}">{% trans "Pricing" %}</a></li>
             <li><a href="{% url 'core:docs_index' %}">{% trans "Documentation" %}</a></li>
             <li><a href="{% url 'core:hosting' %}">{% trans "Hosting" %}</a></li>
           {% endif %}
