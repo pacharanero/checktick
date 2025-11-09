@@ -360,7 +360,7 @@
       </div>
 
       <div class="flex gap-3 flex-wrap">
-        <button type="button" class="btn btn-primary" onclick="document.getElementById('org-theme-edit-form').classList.toggle('hidden')">
+        <button type="button" id="edit-theme-btn" class="btn btn-primary">
           {% trans "Edit Theme" %}
         </button>
         {% if org.theme_preset_light or org.theme_preset_dark or org.theme_light_css or org.theme_dark_css %}
@@ -384,7 +384,7 @@
                 <span class="label-text">{% trans "Light theme preset" %}</span>
               </span>
               <select class="select select-bordered" name="org_theme_preset_light">
-                <option value="" {% if not org.theme_preset_light %}selected{% endif %}>{% trans "Use platform default" %} ({{ brand.theme_preset_light|title }})</option>
+                <option value="" {% if not org.theme_preset_light %}selected{% endif %}>{% trans "Use platform default" %} - {{ brand.theme_preset_light|title }}</option>
                 {% for value, label in light_theme_choices %}
                   <option value="{{ value }}" {% if org.theme_preset_light == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -395,7 +395,7 @@
                 <span class="label-text">{% trans "Dark theme preset" %}</span>
               </span>
               <select class="select select-bordered" name="org_theme_preset_dark">
-                <option value="" {% if not org.theme_preset_dark %}selected{% endif %}>{% trans "Use platform default" %} ({{ brand.theme_preset_dark|title }})</option>
+                <option value="" {% if not org.theme_preset_dark %}selected{% endif %}>{% trans "Use platform default" %} - {{ brand.theme_preset_dark|title }}</option>
                 {% for value, label in dark_theme_choices %}
                   <option value="{{ value }}" {% if org.theme_preset_dark == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -429,7 +429,7 @@
 
           <div class="mt-6 flex gap-3">
             <button type="submit" class="btn btn-primary">{% trans "Save Theme" %}</button>
-            <button type="button" class="btn btn-ghost" onclick="document.getElementById('org-theme-edit-form').classList.add('hidden')">{% trans "Cancel" %}</button>
+            <button type="button" id="cancel-theme-btn" class="btn btn-ghost">{% trans "Cancel" %}</button>
           </div>
         </form>
       </div>
@@ -697,6 +697,23 @@ document.addEventListener('DOMContentLoaded', function() {
   const deleteBtn = document.getElementById('delete-account-btn');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', confirmAccountDeletion);
+  }
+
+  // Theme edit toggle
+  const editThemeBtn = document.getElementById('edit-theme-btn');
+  const cancelThemeBtn = document.getElementById('cancel-theme-btn');
+  const themeEditForm = document.getElementById('org-theme-edit-form');
+
+  if (editThemeBtn && themeEditForm) {
+    editThemeBtn.addEventListener('click', function() {
+      themeEditForm.classList.toggle('hidden');
+    });
+  }
+
+  if (cancelThemeBtn && themeEditForm) {
+    cancelThemeBtn.addEventListener('click', function() {
+      themeEditForm.classList.add('hidden');
+    });
   }
 });
 
