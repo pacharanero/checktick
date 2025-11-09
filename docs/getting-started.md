@@ -15,6 +15,7 @@ Welcome to CheckTick! This guide will help you get started with creating surveys
 ## What is CheckTick?
 
 CheckTick is a secure, privacy-focused survey platform designed for:
+
 - Healthcare research
 - Clinical audits
 - Patient feedback
