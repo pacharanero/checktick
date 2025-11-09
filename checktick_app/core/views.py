@@ -521,15 +521,10 @@ DOC_CATEGORIES = {
         "order": 9,
         "icon": "🌍",
     },
-    "advanced": {
-        "title": "Advanced Topics",
+    "getting-involved": {
+        "title": "Getting Involved",
         "order": 10,
-        "icon": "🚀",
-    },
-    "other": {
-        "title": "Other",
-        "order": 99,
-        "icon": "📄",
+        "icon": "🤝",
     },
 }
 
@@ -537,12 +532,26 @@ DOC_CATEGORIES = {
 # If a file isn't listed here, it will be auto-discovered
 # Format: "slug": {"file": "filename.md", "category": "category-key", "title": "Custom Title"}
 DOC_PAGE_OVERRIDES = {
-    "index": {"file": "README.md", "category": None},  # Special: index page
-    "contributing": {"file": REPO_ROOT / "CONTRIBUTING.md", "category": "other"},
+    "index": {"file": "README.md", "category": None, "standalone": True, "icon": "🏠", "order": 0, "title": "Welcome"},  # Landing page
+    "getting-help": {"file": "getting-help.md", "category": None, "standalone": True, "icon": "💬", "order": 0.5, "title": "Getting Help"},  # Standalone item
+    "contributing": {"file": REPO_ROOT / "CONTRIBUTING.md", "category": "getting-involved"},
     "themes": {
         "file": "themes.md",
         "category": "api",
     },  # Developer guide for theme implementation
+    "FOLLOWUP_FEATURE_SUMMARY": {
+        "file": "FOLLOWUP_FEATURE_SUMMARY.md",
+        "category": "features",
+        "title": "Follow-up Questions & Bulk Import",
+    },
+    "documentation-system": {
+        "file": "documentation-system.md",
+        "category": "getting-involved",
+    },
+    "issues-vs-discussions": {
+        "file": "issues-vs-discussions.md",
+        "category": "getting-involved",
+    },
 }
 
 
@@ -746,12 +755,12 @@ def _infer_category(slug: str) -> str:
     ):
         return "internationalization"
 
-    # Advanced
-    if any(x in slug_lower for x in ["advanced", "custom", "extend"]):
-        return "advanced"
+    # Getting Involved (contributing, documentation, etc.)
+    if any(x in slug_lower for x in ["advanced", "custom", "extend", "contributing", "documentation-system", "issues"]):
+        return "getting-involved"
 
-    # Default
-    return "other"
+    # Default to features for uncategorized docs
+    return "features"
 
 
 def _extract_title_from_file(file_path: Path) -> str | None:
@@ -775,10 +784,26 @@ def _nav_pages():
     """
     Return categorized navigation structure for documentation.
 
-    Returns a list of categories with their pages.
+    Returns a list of categories and standalone items with their pages.
     """
     nav = []
 
+    # Add standalone items from DOC_PAGE_OVERRIDES
+    standalone_items = []
+    for slug, config in DOC_PAGE_OVERRIDES.items():
+        if config.get("standalone"):
+            file_path = config["file"]
+            if isinstance(file_path, str):
+                file_path = DOCS_DIR / file_path
+            standalone_items.append({
+                "slug": slug,
+                "title": config.get("title") or _doc_title(slug),
+                "icon": config.get("icon", ""),
+                "order": config.get("order", 99),
+                "standalone": True,
+            })
+
+    # Add categories with pages
     for cat_key, pages_list in DOC_CATEGORIES_WITH_PAGES.items():
         if not pages_list:  # Skip empty categories
             continue
@@ -792,10 +817,14 @@ def _nav_pages():
                 "icon": cat_info.get("icon", ""),
                 "order": cat_info.get("order", 99),
                 "pages": sorted(pages_list, key=lambda p: p["title"]),
+                "standalone": False,
             }
         )
 
-    # Sort categories by order
+    # Add standalone items to nav
+    nav.extend(standalone_items)
+
+    # Sort all items by order
     nav.sort(key=lambda c: c["order"])
 
     return nav
