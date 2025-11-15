@@ -11,8 +11,8 @@ Tests cover:
 With different user roles and access scenarios.
 """
 
-import pytest
 from django.contrib.auth import get_user_model
+import pytest
 from rest_framework.test import APIClient
 
 from checktick_app.surveys.models import DataSet, Organization, OrganizationMembership
