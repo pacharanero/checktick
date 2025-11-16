@@ -16,6 +16,49 @@ from checktick_app.surveys.models import DataSet
 from checktick_app.surveys.external_datasets import DatasetFetchError
 
 
+# Mock API responses for each dataset type
+MOCK_RESPONSES = {
+    "hospitals_england_wales": [
+        {"name": "ADDENBROOKE'S HOSPITAL", "ods_code": "RGT01"},
+        {"name": "ST THOMAS' HOSPITAL", "ods_code": "RJ7"},
+    ],
+    "nhs_trusts": [
+        {"name": "AIREDALE NHS FOUNDATION TRUST", "ods_code": "RCF"},
+        {"name": "BARTS HEALTH NHS TRUST", "ods_code": "R1H"},
+    ],
+    "welsh_lhbs": [
+        {
+            "name": "Swansea Bay University Health Board",
+            "ods_code": "7A3",
+            "organisations": [
+                {"name": "Morriston Hospital", "ods_code": "RW6C1"},
+            ],
+        }
+    ],
+    "london_boroughs": [
+        {"name": "Westminster", "gss_code": "E09000033"},
+        {"name": "Camden", "gss_code": "E09000007"},
+    ],
+    "nhs_england_regions": [
+        {"region_code": "Y58", "name": "South West"},
+        {"region_code": "Y56", "name": "London"},
+    ],
+    "paediatric_diabetes_units": [
+        {
+            "pz_code": "PZ215",
+            "primary_organisation": {
+                "name": "Great Ormond Street Hospital",
+                "ods_code": "RP401",
+            },
+        }
+    ],
+    "integrated_care_boards": [
+        {"name": "NHS Norfolk and Waveney ICB", "ods_code": "QMM"},
+        {"name": "NHS Frimley ICB", "ods_code": "QNQ"},
+    ],
+}
+
+
 class SyncExternalDatasetsCommandTests(TestCase):
     """Test the sync_external_datasets management command."""
 
@@ -35,19 +78,42 @@ class SyncExternalDatasetsCommandTests(TestCase):
             last_synced_at=None,
         )
 
+    def _mock_api_response(self, dataset_key):
+        """Helper to create mock API response for a specific dataset."""
+        mock_response = Mock()
+        mock_response.json.return_value = MOCK_RESPONSES.get(dataset_key, [])
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    def _patch_requests_get(self, mock_get):
+        """Configure mock to return appropriate response based on URL."""
+
+        def side_effect(url, *args, **kwargs):
+            # Determine dataset type from URL
+            if "local_health_boards" in url.lower():
+                return self._mock_api_response("welsh_lhbs")
+            elif "trusts" in url.lower():
+                return self._mock_api_response("nhs_trusts")
+            elif "london" in url.lower() or "boroughs" in url.lower():
+                return self._mock_api_response("london_boroughs")
+            elif "nhs_england_regions" in url.lower() or "regions" in url.lower():
+                return self._mock_api_response("nhs_england_regions")
+            elif "paediatric_diabetes_units" in url.lower() or "pz_codes" in url.lower():
+                return self._mock_api_response("paediatric_diabetes_units")
+            elif "integrated_care_boards" in url.lower() or "icb" in url.lower():
+                return self._mock_api_response("integrated_care_boards")
+            else:
+                # Default to hospitals
+                return self._mock_api_response("hospitals_england_wales")
+
+        mock_get.side_effect = side_effect
+
     def test_command_runs_successfully(self):
         """Test that the command runs without errors when API succeeds."""
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            # Mock successful API response
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "Hospital A", "ods_code": "ABC123"},
-                {"name": "Hospital B", "ods_code": "DEF456"},
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             out = StringIO()
             call_command("sync_external_datasets", stdout=out)
@@ -63,12 +129,7 @@ class SyncExternalDatasetsCommandTests(TestCase):
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "Hospital A", "ods_code": "ABC123"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             out = StringIO()
             call_command("sync_external_datasets", "--dry-run", stdout=out)
@@ -92,12 +153,7 @@ class SyncExternalDatasetsCommandTests(TestCase):
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "Hospital A", "ods_code": "ABC123"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             call_command("sync_external_datasets", stdout=StringIO())
 
@@ -111,8 +167,8 @@ class SyncExternalDatasetsCommandTests(TestCase):
             self.assertTrue(dataset.is_global)
             self.assertFalse(dataset.is_custom)
             self.assertIsNotNone(dataset.last_synced_at)
-            self.assertEqual(len(dataset.options), 1)
-            self.assertIn("Hospital A (ABC123)", dataset.options)
+            self.assertEqual(len(dataset.options), 2)
+            self.assertIn("ADDENBROOKE'S HOSPITAL (RGT01)", dataset.options)
 
     def test_updates_existing_dataset(self):
         """Test that existing datasets are updated with new data."""
@@ -153,12 +209,7 @@ class SyncExternalDatasetsCommandTests(TestCase):
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "Hospital A", "ods_code": "ABC123"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             before = timezone.now()
             call_command(
@@ -176,9 +227,23 @@ class SyncExternalDatasetsCommandTests(TestCase):
 
     def test_skips_recently_synced_datasets(self):
         """Test that datasets recently synced are skipped unless --force."""
-        # Mark as recently synced
+        # Mark existing dataset as recently synced
         self.existing_dataset.last_synced_at = timezone.now()
         self.existing_dataset.save()
+
+        # Create all other datasets and mark them as recently synced too
+        for key in ["nhs_trusts", "welsh_lhbs", "london_boroughs", "nhs_england_regions", "paediatric_diabetes_units", "integrated_care_boards"]:
+            DataSet.objects.create(
+                key=key,
+                name=key.replace("_", " ").title(),
+                category="rcpch",
+                source_type="api",
+                is_global=True,
+                is_custom=False,
+                sync_frequency_hours=24,
+                last_synced_at=timezone.now(),
+                options=[],
+            )
 
         out = StringIO()
         call_command("sync_external_datasets", stdout=out)
@@ -198,12 +263,7 @@ class SyncExternalDatasetsCommandTests(TestCase):
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "New Hospital", "ods_code": "NEW123"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             out = StringIO()
             call_command(
@@ -219,19 +279,14 @@ class SyncExternalDatasetsCommandTests(TestCase):
             self.assertNotIn("Skipping", output)
 
             self.existing_dataset.refresh_from_db()
-            self.assertIn("New Hospital (NEW123)", self.existing_dataset.options)
+            self.assertIn("ADDENBROOKE'S HOSPITAL (RGT01)", self.existing_dataset.options)
 
     def test_single_dataset_flag(self):
         """Test syncing only a specific dataset."""
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "Hospital A", "ods_code": "ABC123"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             out = StringIO()
             call_command(
@@ -281,8 +336,8 @@ class SyncExternalDatasetsCommandTests(TestCase):
                 )
 
             error_output = err.getvalue()
-            self.assertIn("Failed to sync", error_output)
-            self.assertIn("Errors: 1", str(context.exception))
+            self.assertIn("Unexpected error", error_output)
+            self.assertIn("failed to sync", str(context.exception))
 
     def test_malformed_api_response_is_handled(self):
         """Test that malformed API responses are caught."""
@@ -314,12 +369,7 @@ class SyncExternalDatasetsCommandTests(TestCase):
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "Hospital A", "ods_code": "ABC123"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             # Run twice
             call_command(
@@ -340,23 +390,18 @@ class SyncExternalDatasetsCommandTests(TestCase):
             self.existing_dataset.refresh_from_db()
 
             # Should have same data (not duplicated)
-            self.assertEqual(len(self.existing_dataset.options), 1)
-            self.assertIn("Hospital A (ABC123)", self.existing_dataset.options)
+            self.assertEqual(len(self.existing_dataset.options), 2)
+            self.assertIn("ADDENBROOKE'S HOSPITAL (RGT01)", self.existing_dataset.options)
 
-            # Version should be 2 (incremented each time)
-            self.assertEqual(self.existing_dataset.version, 2)
+            # Version should be 3 (starts at 1, incremented twice)
+            self.assertEqual(self.existing_dataset.version, 3)
 
     def test_transforms_nhs_trusts_correctly(self):
         """Test that NHS trusts are transformed with correct format."""
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {"name": "GREAT ORMOND STREET HOSPITAL", "ods_code": "RP401"}
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             # Create NHS trusts dataset
             dataset = DataSet.objects.create(
@@ -377,27 +422,15 @@ class SyncExternalDatasetsCommandTests(TestCase):
             )
 
             dataset.refresh_from_db()
-            self.assertEqual(len(dataset.options), 1)
-            self.assertIn("GREAT ORMOND STREET HOSPITAL (RP401)", dataset.options)
+            self.assertEqual(len(dataset.options), 2)
+            self.assertIn("AIREDALE NHS FOUNDATION TRUST (RCF)", dataset.options)
 
     def test_transforms_welsh_lhbs_with_hierarchy(self):
         """Test that Welsh LHBs include nested organisations."""
         with patch(
             "checktick_app.surveys.management.commands.sync_external_datasets.requests.get"
         ) as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = [
-                {
-                    "name": "Swansea Bay University Health Board",
-                    "ods_code": "7A3",
-                    "organisations": [
-                        {"name": "Morriston Hospital", "ods_code": "RW600"},
-                        {"name": "Singleton Hospital", "ods_code": "RW601"},
-                    ],
-                }
-            ]
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
+            self._patch_requests_get(mock_get)
 
             dataset = DataSet.objects.create(
                 key="welsh_lhbs",
@@ -414,8 +447,7 @@ class SyncExternalDatasetsCommandTests(TestCase):
             )
 
             dataset.refresh_from_db()
-            # Should have LHB + 2 nested orgs
-            self.assertEqual(len(dataset.options), 3)
+            # Should have LHB + 1 nested org
+            self.assertEqual(len(dataset.options), 2)
             self.assertIn("Swansea Bay University Health Board (7A3)", dataset.options)
-            self.assertIn("  Morriston Hospital (RW600)", dataset.options)
-            self.assertIn("  Singleton Hospital (RW601)", dataset.options)
+            self.assertIn("  Morriston Hospital (RW6C1)", dataset.options)

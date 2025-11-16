@@ -29,12 +29,15 @@ NHS DD datasets are standardized medical codes and classifications from the [NHS
 
 ### External API Datasets
 
-Datasets fetched from external APIs (e.g., RCPCH NHS Organisations API):
-- **Auto-synced** - Periodically updated from source
+Datasets synced from external APIs (e.g., RCPCH NHS Organisations API):
+
+- **Database-backed** - Stored in database for fast access
+- **Periodically synced** - Updated via scheduled command (daily recommended)
 - **Global** - Available to all organizations
-- **Cached** - 24-hour cache to minimize API calls
+- **Offline-capable** - Works without internet once synced
 
 **Available external datasets:**
+
 - Hospitals (England & Wales)
 - NHS Trusts
 - Welsh Local Health Boards
@@ -42,6 +45,19 @@ Datasets fetched from external APIs (e.g., RCPCH NHS Organisations API):
 - NHS England Regions
 - Paediatric Diabetes Units
 - Integrated Care Boards (ICBs)
+
+**Initial Setup:**
+
+```bash
+# 1. Create dataset records
+docker compose exec web python manage.py seed_external_datasets
+
+# 2. Fetch data from APIs
+docker compose exec web python manage.py sync_external_datasets
+
+# 3. Schedule daily sync (see self-hosting-scheduled-tasks.md)
+0 4 * * * cd /app && python manage.py sync_external_datasets
+```
 
 ### User-Created Lists
 
@@ -105,17 +121,44 @@ docker compose exec web python manage.py seed_nhs_datasets
 docker compose exec web python manage.py seed_nhs_datasets --clear
 ```
 
-## Adding External API Datasets (Advanced)
+### Seed External API Datasets
 
-For datasets from the RCPCH NHS Organisations API or other external sources, you'll need to update the code in `checktick_app/surveys/external_datasets.py`.
+Create database records for external API datasets:
 
-### Legacy RCPCH API Datasets
+```bash
+docker compose exec web python manage.py seed_external_datasets
 
-The following datasets are currently hardcoded for backward compatibility but will be migrated to the database:
+# Clear existing RCPCH datasets first
+docker compose exec web python manage.py seed_external_datasets --clear
+```
 
-### 1. Add to AVAILABLE_DATASETS (Temporary)
+This creates records with metadata but empty options. Run sync command to populate.
 
-Until fully migrated, legacy datasets are defined in the hardcoded dictionary:
+### Sync External Datasets
+
+Fetch data from external APIs and populate datasets:
+
+```bash
+# Sync all external datasets
+docker compose exec web python manage.py sync_external_datasets
+
+# Sync specific dataset
+docker compose exec web python manage.py sync_external_datasets --dataset hospitals_england_wales
+
+# Force sync (bypass frequency check)
+docker compose exec web python manage.py sync_external_datasets --force
+
+# Dry-run (preview changes)
+docker compose exec web python manage.py sync_external_datasets --dry-run
+```
+
+**Recommended**: Schedule daily sync via cron. See [Scheduled Tasks](self-hosting-scheduled-tasks.md).
+
+## Adding New External API Datasets
+
+To add a new dataset from the RCPCH NHS Organisations API or other sources, update the code in `checktick_app/surveys/external_datasets.py`:
+
+### 1. Add to AVAILABLE_DATASETS
 
 ```python
 AVAILABLE_DATASETS = {
@@ -124,36 +167,18 @@ AVAILABLE_DATASETS = {
 }
 ```
 
-### 2. Create Database Entry (Preferred)
-
-Create a DataSet entry in the database for long-term storage:
-
-```python
-from checktick_app.surveys.models import DataSet
-
-DataSet.objects.create(
-    key="your_dataset_key",
-    name="Your Dataset Display Name",
-    description="Description of the dataset",
-    category="external_api",  # or "rcpch" for RCPCH API
-    source_type="api",
-    is_global=True,
-    options=[],  # Will be populated by API
-)
-```
-
-### 3. Add Endpoint Mapping
+### 2. Add Endpoint Mapping
 
 ```python
 def _get_endpoint_for_dataset(dataset_key: str) -> str:
     endpoint_map = {
         # ... existing mappings ...
-        "your_dataset_key": "/your/endpoint/",  # Note: include trailing slash
+        "your_dataset_key": "/your/endpoint/",  # Include trailing slash
     }
     return endpoint_map.get(dataset_key, "")
 ```
 
-### 4. Add Transformer Logic
+### 3. Add Transformer Logic
 
 Add a new `elif` block in `_transform_response_to_options()`:
 
@@ -162,7 +187,7 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
     # ... existing code ...
 
     elif dataset_key == "your_dataset_key":
-        # Document the expected response format
+        # Document the expected API response format
         # Format: {"id": "123", "name": "Example", ...}
         for item in data:
             # Validate required fields exist
@@ -170,11 +195,23 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
                 logger.warning(f"Skipping invalid item: {item}")
                 continue
 
-            # Format as "Name (Code)"
+            # Format as "Name (Code)" for consistency
             options.append(f"{item['name']} ({item['id']})")
+
+    return options
 ```
 
-That's it! The dataset will automatically appear in the dropdown selector.
+### 4. Seed and Sync
+
+```bash
+# Create database record
+docker compose exec web python manage.py seed_external_datasets
+
+# Populate with data
+docker compose exec web python manage.py sync_external_datasets --dataset your_dataset_key
+```
+
+The dataset will immediately appear in the dropdown selector!
 
 ## Database Schema
 

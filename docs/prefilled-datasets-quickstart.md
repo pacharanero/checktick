@@ -5,28 +5,49 @@
 Prefilled datasets provide ready-to-use dropdown options for survey questions, saving time and ensuring consistency. CheckTick supports three types:
 
 1. **NHS Data Dictionary** - Standardized medical codes (e.g., specialty codes, ethnic categories)
-2. **External APIs** - Live data from RCPCH and other sources (e.g., hospitals, NHS trusts)
+2. **External APIs** - Data synced from RCPCH and other sources (e.g., hospitals, NHS trusts)
 3. **Custom Lists** - Organization-specific lists you create
 
-## What's Already Available ✅
+## Initial Setup (One-Time)
+
+Before using datasets, run these commands once:
+
+```bash
+# 1. Seed NHS Data Dictionary datasets
+docker compose exec web python manage.py seed_nhs_datasets
+
+# 2. Seed external dataset records (creates structure)
+docker compose exec web python manage.py seed_external_datasets
+
+# 3. Populate external datasets (fetches data from APIs)
+docker compose exec web python manage.py sync_external_datasets
+```
+
+**Note**: Step 3 takes 2-3 minutes as it fetches data from external APIs.
+
+## What's Available ✅
 
 ### NHS Data Dictionary Datasets
 
 Pre-loaded standardized codes:
+
 - **Main Specialty Code** (75 options)
 - **Treatment Function Code** (73 options)
 - **Ethnic Category** (17 options)
 
 ### External API Datasets
 
-Live data from RCPCH NHS Organisations API:
-- **Hospitals (England & Wales)** (~2000 options)
-- **NHS Trusts** (~200 options)
-- **Welsh Local Health Boards** (~20 options)
+Data synced from RCPCH NHS Organisations API:
+
+- **Hospitals (England & Wales)** (~500 options)
+- **NHS Trusts** (~240 options)
+- **Welsh Local Health Boards** (~7 options with nested organisations)
 - **London Boroughs** (33 options)
 - **NHS England Regions** (7 options)
-- **Paediatric Diabetes Units** (~200 options)
+- **Paediatric Diabetes Units** (~175 options)
 - **Integrated Care Boards** (42 options)
+
+**Sync Schedule**: External datasets should be synced daily to stay current. See [Scheduled Tasks](self-hosting-scheduled-tasks.md) for cron setup.
 
 ## Using Prefilled Datasets
 

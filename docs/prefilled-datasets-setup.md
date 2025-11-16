@@ -5,10 +5,10 @@
 The prefilled datasets feature allows users to load dropdown options from multiple sources when creating survey questions:
 
 1. **NHS Data Dictionary** - Standardized medical codes stored in the database
-2. **RCPCH NHS Organisations API** - Live data from external API with caching
+2. **RCPCH NHS Organisations API** - External datasets synced periodically to database
 3. **Custom Lists** - User-created and organization-specific datasets
 
-All datasets are stored in the `DataSet` model for consistency and fast access.
+All datasets are stored in the `DataSet` model for consistency, fast access, and offline capability.
 
 ## Database Storage
 
@@ -16,7 +16,7 @@ All datasets are stored in the `DataSet` model for consistency and fast access.
 
 All datasets are stored in `surveys_dataset` table with these key fields:
 
-- `key` - Unique identifier (e.g., `main_specialty_code`)
+- `key` - Unique identifier (e.g., `main_specialty_code`, `hospitals_england_wales`)
 - `name` - Display name shown in UI
 - `category` - `nhs_dd`, `external_api`, `rcpch`, or `user_created`
 - `source_type` - `manual`, `api`, or `import`
@@ -25,9 +25,13 @@ All datasets are stored in `surveys_dataset` table with these key fields:
 - `parent` - Reference to NHS DD original if customized
 - `organization` - Organization that owns this dataset (if not global)
 - `options` - JSON array of option strings
-- `last_synced_at` - When API dataset was last updated
+- `last_synced_at` - When API dataset was last updated (for external datasets)
+- `sync_frequency_hours` - How often to sync (default 24 hours)
+- `version` - Incremented on each sync for audit trail
 
-### Seeding NHS DD Datasets
+## Initial Setup
+
+### 1. Seed NHS DD Datasets
 
 Pre-populate NHS Data Dictionary standards:
 
@@ -43,16 +47,55 @@ This creates read-only NHS DD datasets:
 - Treatment Function Code (73 options)
 - Ethnic Category (17 options)
 
+### 2. Seed External Dataset Records
+
+Create database records for external API datasets:
+
+```bash
+docker compose exec web python manage.py seed_external_datasets
+```
+
+This creates 7 dataset records with metadata but **empty options**:
+- Hospitals (England & Wales)
+- NHS Trusts
+- Welsh Local Health Boards
+- London Boroughs
+- NHS England Regions
+- Paediatric Diabetes Units
+- Integrated Care Boards (ICBs)
+
+### 3. Populate External Datasets
+
+Fetch data from RCPCH API and populate the datasets:
+
+```bash
+docker compose exec web python manage.py sync_external_datasets
+```
+
+This fetches data from the RCPCH NHS Organisations API and stores it in the database. First sync takes 2-3 minutes as it fetches all 7 datasets.
+
+**Command Options:**
+- `--dataset KEY` - Sync only a specific dataset (e.g., `--dataset hospitals_england_wales`)
+- `--force` - Bypass sync_frequency_hours check and sync anyway
+- `--dry-run` - Preview changes without saving to database
+
 ## External API Integration
 
 ### API Details
 
 - **Base URL**: `https://api.rcpch.ac.uk/nhs-organisations/v1`
 - **Authentication**: No API key required (public API)
-- **Endpoints**:
-  - `/organisations/limited` - Hospitals (England, Wales, and combined)
-  - `/trusts` - NHS Trusts
-  - `/local_health_boards` - Welsh Local Health Boards
+- **Sync Mechanism**: Periodic sync via management command (daily cron recommended)
+
+### Endpoints
+
+- `/organisations/limited` - Hospitals (England & Wales combined)
+- `/trusts` - NHS Trusts
+- `/local_health_boards` - Welsh Local Health Boards
+- `/london_boroughs` - London Boroughs
+- `/nhs_england_regions` - NHS England Regions
+- `/paediatric_diabetes_units` - Paediatric Diabetes Units (PDUs)
+- `/integrated_care_boards` - Integrated Care Boards (ICBs)
 
 ### API Response Formats
 
@@ -124,43 +167,69 @@ EXTERNAL_DATASET_API_KEY=  # Leave empty - no key required
 
 These are already configured in `.env.example` with the correct defaults.
 
-### Django Settings
+### Scheduled Sync (Recommended)
 
-The service layer (`checktick_app/surveys/external_datasets.py`) reads these settings with appropriate defaults:
+To keep datasets up-to-date, schedule the sync command to run daily via cron:
 
-- `EXTERNAL_DATASET_API_URL` - Defaults to RCPCH API
-- `EXTERNAL_DATASET_API_KEY` - Defaults to empty string (no auth required)
+```bash
+# Run at 4 AM daily
+0 4 * * * cd /app && python manage.py sync_external_datasets
+```
+
+See [Self-Hosting: Scheduled Tasks](self-hosting-scheduled-tasks.md) for platform-specific instructions (Northflank, Docker Compose, Kubernetes).
 
 ## Available Datasets
 
-The system supports 5 dataset types:
+The system supports 7 external datasets:
 
-1. **hospitals_england** - Hospitals (England)
-2. **hospitals_wales** - Hospitals (Wales)
-3. **hospitals_england_wales** - Hospitals (England & Wales)
-4. **nhs_trusts** - NHS Trusts
-5. **welsh_lhbs** - Welsh Local Health Boards
+1. **hospitals_england_wales** - Hospitals (England & Wales)
+2. **nhs_trusts** - NHS Trusts
+3. **welsh_lhbs** - Welsh Local Health Boards
+4. **london_boroughs** - London Boroughs
+5. **nhs_england_regions** - NHS England Regions
+6. **paediatric_diabetes_units** - Paediatric Diabetes Units
+7. **integrated_care_boards** - Integrated Care Boards (ICBs)
 
-**Note**: Currently all hospital datasets use the same endpoint (`/organisations/limited`) as the API doesn't provide country filtering in the limited response format. If country-specific filtering is needed, this can be implemented when the API supports it.
+Plus 3 NHS Data Dictionary datasets:
+
+8. **main_specialty_code** - Main Specialty Code
+9. **treatment_function_code** - Treatment Function Code
+10. **ethnic_category** - Ethnic Category
 
 ## Data Transformation
 
 The service layer transforms API responses into user-friendly dropdown options:
 
-- **Hospitals & Trusts**: `NAME (ODS_CODE)`
+- **Hospitals, Trusts, Boroughs**: `NAME (CODE)`
   Example: `ADDENBROOKE'S HOSPITAL (RGT01)`
 
 - **Welsh LHBs**: Includes both the health board and its constituent organisations
   Example:
   - `Swansea Bay University Health Board (7A3)`
-  - `  MORRISTON HOSPITAL (7A3C7)` (indented)
+  - `  MORRISTON HOSPITAL (7A3C7)` (indented to show hierarchy)
 
-## Caching
+- **Regions**: `NAME (REGION_CODE)`
+  Example: `South West (Y58)`
 
-- Dataset results are cached for **24 hours** using Django's cache framework
-- Cache keys: `external_dataset:{dataset_key}`
-- Cache is shared across all users (reference data)
-- To clear cache manually, use `clear_dataset_cache(dataset_key)` from the service layer
+- **PDUs**: `HOSPITAL_NAME (ODS_CODE)` or `PDU PZ_CODE` if name unavailable
+
+## Database-First Architecture
+
+**Important**: The system no longer uses caching or makes API calls on user requests. Instead:
+
+1. External datasets are stored in the database
+2. Users read from the database (fast, offline-capable)
+3. Periodic sync updates data from external APIs
+4. Version history tracks changes
+
+**Benefits:**
+- **Faster** - No API calls during user requests
+- **Offline** - Works without internet connectivity
+- **Auditable** - Version history tracks all changes
+- **Customizable** - Users can create custom versions of external datasets
+
+**Migration from Cache:**
+If upgrading from cache-based implementation, the `clear_dataset_cache()` function now logs a warning and does nothing. Remove any cache-clearing code and use `sync_external_datasets` command instead.
 
 ## API Endpoints
 
@@ -229,70 +298,70 @@ All 24 tests are passing, covering:
 
 - Authentication requirements
 - Permission checks (org admins, creators, viewers, and non-members)
-- Error handling (invalid keys, external API failures)
-- Caching behavior
+- Error handling (invalid keys, missing datasets)
+- Database-backed responses
 - Response format validation
 
-Run tests with:
+Run API tests with:
+
 ```bash
 docker compose exec web python -m pytest checktick_app/api/tests/test_dataset_api.py -v
 ```
 
-## Next Steps
+Run sync command tests with:
 
-### 1. Question Persistence (Not Yet Implemented)
-
-To save and restore prefilled dataset selections when editing questions:
-
-**On Save:**
-- Extract `dataset_key` from `optionsTextarea.dataset.prefilledDataset`
-- Store in question's options JSON: `{"type": "prefilled", "dataset_key": "hospitals_england", "values": [...]}`
-
-**On Edit:**
-- Detect prefilled type in stored options
-- Restore checkbox checked state
-- Set dataset dropdown value
-- Populate textarea with saved options
-
-### 2. Testing with Real API
-
-Test the complete flow:
-1. Log in and create/edit a survey
-2. Add a dropdown question
-3. Check "Use prefilled options"
-4. Select a dataset
-5. Click "Load Options" (verify spinner appears)
-6. Verify options populate correctly
-7. Save the question
-8. Edit the question again
-9. Verify prefilled state is restored (when persistence is implemented)
+```bash
+docker compose exec web python -m pytest checktick_app/surveys/tests/test_sync_datasets_command.py -v
+```
 
 ## Troubleshooting
 
-### API Connection Issues
-
-If you see `502 Bad Gateway` errors:
-- Check that `EXTERNAL_DATASET_API_URL` is correct
-- Verify network connectivity to `api.rcpch.ac.uk`
-- Check Django logs for detailed error messages
-
 ### Empty Options Lists
 
-- Verify the API is returning data in the expected format
-- Check the service layer transformation logic in `_transform_response_to_options()`
-- Look for warning logs about skipped items
+If datasets show as empty in the UI:
 
-### Caching Issues
+1. Check if datasets are seeded:
+   ```bash
+   docker compose exec web python manage.py shell
+   >>> from checktick_app.surveys.models import DataSet
+   >>> DataSet.objects.filter(category='rcpch').values('key', 'last_synced_at')
+   ```
 
-To force refresh from the API:
-```python
-from checktick_app.surveys.external_datasets import clear_dataset_cache
+2. If `last_synced_at` is `None`, run the sync command:
+   ```bash
+   docker compose exec web python manage.py sync_external_datasets
+   ```
 
-# Clear specific dataset
-clear_dataset_cache("hospitals_england")
+3. Check for errors in logs during sync
 
-# Clear all datasets
-clear_dataset_cache()
+### Sync Command Errors
+
+If you see errors when running `sync_external_datasets`:
+
+- **"Unknown dataset key"**: Use `--dataset` with a valid key from `AVAILABLE_DATASETS`
+- **"API connection failed"**: Check network connectivity to `api.rcpch.ac.uk`
+- **"Expected list response"**: API response format changed - check transformation logic
+- Check Django logs for detailed error messages
+
+### Dataset Not Appearing in UI
+
+1. Verify dataset exists and is active:
+   ```bash
+   docker compose exec web python manage.py shell
+   >>> from checktick_app.surveys.models import DataSet
+   >>> DataSet.objects.filter(key='hospitals_england_wales', is_active=True).exists()
+   ```
+
+2. Check that `is_global=True` or dataset belongs to user's organization
+
+3. Verify `options` array is not empty
+
+### Force Re-Sync
+
+To force update a recently synced dataset:
+
+```bash
+docker compose exec web python manage.py sync_external_datasets --force --dataset hospitals_england_wales
 ```
 
 ## Architecture
@@ -315,6 +384,20 @@ clear_dataset_cache()
 │ (external_data  │
 │  sets.py)       │
 └────────┬────────┘
+         │ Query database
+         ▼
+┌─────────────────┐
+│  DataSet Model  │
+│  (surveys_      │
+│   dataset)      │
+└─────────────────┘
+         ▲
+         │ Periodic sync
+┌────────┴────────┐
+│ Sync Command    │
+│ (sync_external_ │
+│  datasets)      │
+└────────┬────────┘
          │ HTTP GET
          ▼
 ┌─────────────────┐
@@ -323,12 +406,16 @@ clear_dataset_cache()
 └─────────────────┘
 ```
 
-## Files Modified
+## Files Modified/Created
 
-- `checktick_app/surveys/external_datasets.py` - Service layer with API integration
-- `checktick_app/api/views.py` - API endpoints
-- `checktick_app/api/urls.py` - URL routing
-- `checktick_app/api/tests/test_dataset_api.py` - Comprehensive test suite
-- `checktick_app/surveys/templates/surveys/group_builder.html` - UI components
-- `checktick_app/static/js/builder.js` - Frontend logic with spinner
-- `.env.example` - Configuration documentation
+- `checktick_app/surveys/management/commands/seed_external_datasets.py` - NEW: Seed dataset records
+- `checktick_app/surveys/management/commands/sync_external_datasets.py` - NEW: Sync from API
+- `checktick_app/surveys/tests/test_sync_datasets_command.py` - NEW: Comprehensive sync tests
+- `checktick_app/surveys/external_datasets.py` - MODIFIED: Database-first, removed cache
+- `checktick_app/api/views.py` - API endpoints (unchanged, works with new architecture)
+- `checktick_app/api/urls.py` - URL routing (unchanged)
+- `checktick_app/api/tests/test_dataset_api.py` - Test suite with database fixtures
+- `checktick_app/surveys/templates/surveys/group_builder.html` - UI components (unchanged)
+- `checktick_app/static/js/builder.js` - Frontend logic with spinner (unchanged)
+- `.env.example` - Configuration documentation (unchanged)
+- `docs/self-hosting-scheduled-tasks.md` - Cron job documentation

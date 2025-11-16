@@ -380,10 +380,10 @@ class TestFetchDataset:
             options=["Option 1"],
         )
 
-        # Should not find inactive dataset, fall back to hardcoded check
+        # Should not find inactive dataset
         from checktick_app.surveys.external_datasets import DatasetFetchError
 
-        with pytest.raises(DatasetFetchError, match="Unknown dataset key"):
+        with pytest.raises(DatasetFetchError, match="not found"):
             fetch_dataset("inactive_test")
 
     @pytest.mark.django_db
@@ -391,7 +391,7 @@ class TestFetchDataset:
         """Test that fetching non-existent dataset raises error."""
         from checktick_app.surveys.external_datasets import DatasetFetchError
 
-        with pytest.raises(DatasetFetchError, match="Unknown dataset key"):
+        with pytest.raises(DatasetFetchError, match="not found"):
             fetch_dataset("does_not_exist")
 
 
