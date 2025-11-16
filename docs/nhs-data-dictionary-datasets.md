@@ -29,8 +29,8 @@ If you need an NHS DD list that isn't currently available:
 | Dataset Name | NHS DD URL | Categories | Date Added | Last Scraped | NHS DD Published |
 |--------------|------------|------------|------------|--------------|------------------|
 | Ethnic Category | [Link](https://www.datadictionary.nhs.uk/data_elements/ethnic_category.html) | demographics | 2024-11-15 | 2024-11-15 | - |
-| Main Specialty Code | [Link](https://www.datadictionary.nhs.uk/data_elements/main_specialty_code.html) | medical, specialty | 2024-11-15 | 2024-11-15 | - |
-| Treatment Function Code | [Link](https://www.datadictionary.nhs.uk/data_elements/treatment_function_code.html) | medical, treatment | 2024-11-15 | 2024-11-15 | - |
+| Main Specialty Code | [Link](https://www.datadictionary.nhs.uk/data_elements/main_specialty_code__mental_health_.html) | medical, specialty | 2024-11-15 | 2024-11-15 | - |
+| Treatment Function Code | [Link](https://www.datadictionary.nhs.uk/data_elements/treatment_function_code__mental_health_.html) | medical, treatment | 2024-11-15 | 2024-11-15 | - |
 | Accommodation Status | [Link](https://www.datadictionary.nhs.uk/data_elements/accommodation_status_code.html) | administrative, demographic | 2025-11-16 | Pending | - |
 | Accommodation Type | [Link](https://www.datadictionary.nhs.uk/data_elements/accommodation_type.html) | administrative, demographic | 2025-11-16 | Pending | - |
 | Admission Source (Hospital Provider) | [Link](https://www.datadictionary.nhs.uk/data_elements/admission_source__hospital_provider_spell_.html) | administrative, clinic | 2025-11-16 | Pending | - |
