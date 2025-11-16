@@ -38,6 +38,7 @@ class Command(BaseCommand):
                 "source_type": "manual",
                 "is_custom": False,
                 "is_global": True,
+                "tags": ["medical", "specialty", "NHS"],
                 "options": [
                     "100 - General Surgery",
                     "101 - Urology",
@@ -125,6 +126,7 @@ class Command(BaseCommand):
                 "source_type": "manual",
                 "is_custom": False,
                 "is_global": True,
+                "tags": ["medical", "treatment", "NHS"],
                 "options": [
                     "100 - General Surgery Service",
                     "101 - Urology Service",
@@ -210,6 +212,7 @@ class Command(BaseCommand):
                 "source_type": "manual",
                 "is_custom": False,
                 "is_global": True,
+                "tags": ["demographics", "NHS"],
                 "options": [
                     "A - White - British",
                     "B - White - Irish",

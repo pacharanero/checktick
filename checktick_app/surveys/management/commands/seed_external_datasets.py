@@ -62,6 +62,7 @@ class Command(BaseCommand):
                     "external_api_url": _get_api_url(),
                     "sync_frequency_hours": 24,
                     "last_synced_at": None,  # Never synced yet
+                    "tags": ["administrative", "paediatrics"],  # RCPCH tags
                 },
             )
 

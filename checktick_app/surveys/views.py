@@ -5537,28 +5537,56 @@ def _send_survey_closure_notification(survey: Survey, user: User) -> None:
 @login_required
 def dataset_list(request: HttpRequest) -> HttpResponse:
     """List all datasets available to the user (global + their org datasets)."""
+    from django.core.paginator import Paginator
+
     user = request.user
 
     # Get organizations where user is a member
     user_orgs = Organization.objects.filter(memberships__user=user)
 
-    # Build queryset: global datasets + datasets from user's organizations
-    datasets = DataSet.objects.filter(
-        Q(is_global=True) | Q(organization__in=user_orgs), is_active=True
+    # Build base queryset: global datasets + datasets from user's organizations + individual user datasets
+    base_datasets = DataSet.objects.filter(
+        Q(is_global=True)
+        | Q(organization__in=user_orgs)
+        | Q(created_by=user, organization__isnull=True),
+        is_active=True,
     ).select_related("organization", "created_by", "parent")
+
+    # Get all unique tags from base datasets (before filtering) for facets
+    all_tags = {}
+    for dataset in base_datasets:
+        for tag in dataset.tags:
+            all_tags[tag] = all_tags.get(tag, 0) + 1
+
+    # Sort tags by count (descending) then alphabetically
+    available_tags = sorted(
+        [(tag, count) for tag, count in all_tags.items()],
+        key=lambda x: (-x[1], x[0]),
+    )
+
+    # Now apply filters
+    datasets = base_datasets
 
     # Apply category filter if provided
     category_filter = request.GET.get("category")
     if category_filter:
         datasets = datasets.filter(category=category_filter)
 
-    # Apply organization filter if provided
-    org_filter = request.GET.get("organization")
-    if org_filter:
-        if org_filter == "global":
-            datasets = datasets.filter(is_global=True)
-        else:
-            datasets = datasets.filter(organization_id=org_filter)
+    # Apply tag filter if provided (AND logic for multiple tags)
+    tag_filter = request.GET.get("tags")
+    selected_tags = []
+    if tag_filter:
+        selected_tags = [t.strip() for t in tag_filter.split(",") if t.strip()]
+        for tag in selected_tags:
+            datasets = datasets.filter(tags__contains=[tag])
+
+    # Order datasets
+    datasets = datasets.order_by("-created_at")
+
+    # Pagination (20 per page)
+    paginator = Paginator(datasets, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
     # Get user's organizations for create permission check
     can_create = can_create_datasets(user)
@@ -5566,19 +5594,16 @@ def dataset_list(request: HttpRequest) -> HttpResponse:
     # Get unique categories for filter dropdown
     categories = DataSet.CATEGORY_CHOICES
 
-    # Get user's organizations for filter dropdown
-    organizations = list(user_orgs)
-
     return render(
         request,
         "surveys/dataset_list.html",
         {
-            "datasets": datasets.order_by("-created_at"),
+            "page_obj": page_obj,
             "can_create": can_create,
             "categories": categories,
-            "organizations": organizations,
+            "available_tags": available_tags,
             "selected_category": category_filter,
-            "selected_org": org_filter,
+            "selected_tags": selected_tags,
         },
     )
 
