@@ -1687,7 +1687,9 @@ class DataSet(models.Model):
         null=True, blank=True, help_text="Last successful scrape from source URL"
     )
     nhs_dd_published_date = models.DateField(
-        null=True, blank=True, help_text="Date the NHS DD list was published (if available)"
+        null=True,
+        blank=True,
+        help_text="Date the NHS DD list was published (if available)",
     )
 
     # Sharing and ownership

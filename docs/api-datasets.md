@@ -5,7 +5,7 @@ This document covers the Dataset API endpoints for programmatic access to datase
 ## Base URL
 
 ```
-/api/datasets-v2/
+/api/datasets/
 ```
 
 ## Authentication
@@ -23,7 +23,7 @@ Authorization: Bearer <your_jwt_token>
 Get all datasets accessible to the current user.
 
 ```http
-GET /api/datasets-v2/
+GET /api/datasets/
 ```
 
 **Query Parameters:**
@@ -39,16 +39,16 @@ GET /api/datasets-v2/
 
 ```bash
 # Get all NHS DD datasets
-curl https://checktick.example.com/api/datasets-v2/?category=nhs_dd
+curl https://checktick.example.com/api/datasets/?category=nhs_dd
 
 # Get datasets with specific tags
-curl https://checktick.example.com/api/datasets-v2/?tags=paediatric,medical
+curl https://checktick.example.com/api/datasets/?tags=paediatric,medical
 
 # Search datasets
-curl https://checktick.example.com/api/datasets-v2/?search=hospital
+curl https://checktick.example.com/api/datasets/?search=hospital
 
 # Combine filters
-curl https://checktick.example.com/api/datasets-v2/?category=nhs_dd&tags=demographic
+curl https://checktick.example.com/api/datasets/?category=nhs_dd&tags=demographic
 ```
 
 **Response:**
@@ -56,7 +56,7 @@ curl https://checktick.example.com/api/datasets-v2/?category=nhs_dd&tags=demogra
 ```json
 {
   "count": 48,
-  "next": "http://checktick.example.com/api/datasets-v2/?page=2",
+  "next": "http://checktick.example.com/api/datasets/?page=2",
   "previous": null,
   "results": [
     {
@@ -89,13 +89,13 @@ curl https://checktick.example.com/api/datasets-v2/?category=nhs_dd&tags=demogra
 Retrieve a specific dataset with full options.
 
 ```http
-GET /api/datasets-v2/{key}/
+GET /api/datasets/{key}/
 ```
 
 **Example:**
 
 ```bash
-curl https://checktick.example.com/api/datasets-v2/main_specialty_code/
+curl https://checktick.example.com/api/datasets/main_specialty_code/
 ```
 
 **Response:**
@@ -135,7 +135,7 @@ curl https://checktick.example.com/api/datasets-v2/main_specialty_code/
 Create a customized copy of a global dataset.
 
 ```http
-POST /api/datasets-v2/{key}/create-custom/
+POST /api/datasets/{key}/create-custom/
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -153,7 +153,7 @@ Content-Type: application/json
 **Example:**
 
 ```bash
-curl -X POST https://checktick.example.com/api/datasets-v2/hospitals_england_wales/create-custom/ \
+curl -X POST https://checktick.example.com/api/datasets/hospitals_england_wales/create-custom/ \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -194,7 +194,7 @@ You can now edit this dataset without affecting the original.
 Update a dataset you own (organization-owned or user-created).
 
 ```http
-PATCH /api/datasets-v2/{key}/
+PATCH /api/datasets/{key}/
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -218,7 +218,7 @@ Content-Type: application/json
 **Example:**
 
 ```bash
-curl -X PATCH https://checktick.example.com/api/datasets-v2/our_custom_list/ \
+curl -X PATCH https://checktick.example.com/api/datasets/our_custom_list/ \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -234,7 +234,7 @@ curl -X PATCH https://checktick.example.com/api/datasets-v2/our_custom_list/ \
 Make an organization-owned dataset available to all users.
 
 ```http
-POST /api/datasets-v2/{key}/publish/
+POST /api/datasets/{key}/publish/
 Authorization: Bearer <token>
 ```
 
@@ -247,7 +247,7 @@ Authorization: Bearer <token>
 **Example:**
 
 ```bash
-curl -X POST https://checktick.example.com/api/datasets-v2/our_specialty_codes/publish/ \
+curl -X POST https://checktick.example.com/api/datasets/our_specialty_codes/publish/ \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -275,7 +275,7 @@ Once published:
 Soft-delete a dataset you own.
 
 ```http
-DELETE /api/datasets-v2/{key}/
+DELETE /api/datasets/{key}/
 Authorization: Bearer <token>
 ```
 
@@ -288,7 +288,7 @@ Authorization: Bearer <token>
 **Example:**
 
 ```bash
-curl -X DELETE https://checktick.example.com/api/datasets-v2/old_custom_list/ \
+curl -X DELETE https://checktick.example.com/api/datasets/old_custom_list/ \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -297,13 +297,13 @@ curl -X DELETE https://checktick.example.com/api/datasets-v2/old_custom_list/ \
 Get all tags with usage counts for filtering.
 
 ```http
-GET /api/datasets-v2/available-tags/
+GET /api/datasets/available-tags/
 ```
 
 **Example:**
 
 ```bash
-curl https://checktick.example.com/api/datasets-v2/available-tags/
+curl https://checktick.example.com/api/datasets/available-tags/
 ```
 
 **Response:**
@@ -317,17 +317,6 @@ curl https://checktick.example.com/api/datasets-v2/available-tags/
   {"tag": "demographic", "count": 8}
 ]
 ```
-
-## Legacy Endpoints
-
-The following endpoints are function-based views for backward compatibility:
-
-```http
-GET /api/datasets/                    # List all global datasets (basic info)
-GET /api/datasets/{key}/              # Get dataset options only
-```
-
-**Note:** For full CRUD operations, use `/api/datasets-v2/` endpoints.
 
 ## Permissions Summary
 
@@ -380,10 +369,10 @@ Dataset doesn't exist or isn't accessible:
 
 ```bash
 # 1. Find the global hospitals dataset
-curl https://checktick.example.com/api/datasets-v2/hospitals_england_wales/
+curl https://checktick.example.com/api/datasets/hospitals_england_wales/
 
 # 2. Create a custom version
-curl -X POST https://checktick.example.com/api/datasets-v2/hospitals_england_wales/create-custom/ \
+curl -X POST https://checktick.example.com/api/datasets/hospitals_england_wales/create-custom/ \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -394,7 +383,7 @@ curl -X POST https://checktick.example.com/api/datasets-v2/hospitals_england_wal
 # Response includes new key: hospitals_england_wales_custom_5_1731744000
 
 # 3. Update to include only North West hospitals
-curl -X PATCH https://checktick.example.com/api/datasets-v2/hospitals_england_wales_custom_5_1731744000/ \
+curl -X PATCH https://checktick.example.com/api/datasets/hospitals_england_wales_custom_5_1731744000/ \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -410,7 +399,7 @@ curl -X PATCH https://checktick.example.com/api/datasets-v2/hospitals_england_wa
 
 ```bash
 # 1. Create your dataset
-curl -X POST https://checktick.example.com/api/datasets-v2/ \
+curl -X POST https://checktick.example.com/api/datasets/ \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -428,7 +417,7 @@ curl -X POST https://checktick.example.com/api/datasets-v2/ \
   }'
 
 # 2. Publish globally to share with community
-curl -X POST https://checktick.example.com/api/datasets-v2/specialty_codes_cardiology/publish/ \
+curl -X POST https://checktick.example.com/api/datasets/specialty_codes_cardiology/publish/ \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

@@ -115,7 +115,7 @@ class TestCreateCustomVersion:
         api_client.force_authenticate(user=admin_user)
 
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/",
+            f"/api/datasets/{global_dataset.key}/create-custom/",
             {"name": "My Custom Version"},
         )
 
@@ -136,7 +136,7 @@ class TestCreateCustomVersion:
         api_client.force_authenticate(user=creator_user)
 
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/", {}
+            f"/api/datasets/{global_dataset.key}/create-custom/", {}
         )
 
         assert response.status_code == 201
@@ -151,7 +151,7 @@ class TestCreateCustomVersion:
         api_client.force_authenticate(user=member_user)
 
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/", {}
+            f"/api/datasets/{global_dataset.key}/create-custom/", {}
         )
 
         # Now succeeds - creates as individual user dataset
@@ -166,7 +166,7 @@ class TestCreateCustomVersion:
         api_client.force_authenticate(user=admin_user)
 
         response = api_client.post(
-            f"/api/datasets-v2/{org_dataset.key}/create-custom/", {}
+            f"/api/datasets/{org_dataset.key}/create-custom/", {}
         )
 
         assert response.status_code == 400
@@ -180,22 +180,22 @@ class TestCreateCustomVersion:
 
         # Create custom version
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/", {}
+            f"/api/datasets/{global_dataset.key}/create-custom/", {}
         )
         custom_key = response.data["key"]
 
         # Edit it
         response = api_client.patch(
-            f"/api/datasets-v2/{custom_key}/",
-            {"options": ["Modified Option 1", "Modified Option 2"]},
+            f"/api/datasets/{custom_key}/",
+            {"options": {"opt_1": "Modified Option 1", "opt_2": "Modified Option 2"}},
             format="json",
         )
 
         assert response.status_code == 200
-        assert response.data["options"] == [
-            "Modified Option 1",
-            "Modified Option 2",
-        ]
+        assert response.data["options"] == {
+            "opt_1": "Modified Option 1",
+            "opt_2": "Modified Option 2",
+        }
 
     def test_specify_organization(
         self, api_client, admin_user, org_admin_membership, global_dataset, organization
@@ -204,7 +204,7 @@ class TestCreateCustomVersion:
         api_client.force_authenticate(user=admin_user)
 
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/",
+            f"/api/datasets/{global_dataset.key}/create-custom/",
             {"organization": organization.id},
         )
 
@@ -221,7 +221,7 @@ class TestPublishDataset:
         """ADMIN can publish organization dataset globally."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        response = api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         assert response.status_code == 200
         assert response.data["is_global"] is True
@@ -235,7 +235,7 @@ class TestPublishDataset:
         """CREATOR can publish organization dataset globally."""
         api_client.force_authenticate(user=creator_user)
 
-        response = api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        response = api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         assert response.status_code == 200
         assert response.data["is_global"] is True
@@ -246,7 +246,7 @@ class TestPublishDataset:
         """MEMBER cannot publish - needs ADMIN/CREATOR role."""
         api_client.force_authenticate(user=member_user)
 
-        response = api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        response = api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         assert response.status_code == 403
 
@@ -256,7 +256,7 @@ class TestPublishDataset:
         """Cannot publish dataset that's already global."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.post(f"/api/datasets-v2/{global_dataset.key}/publish/")
+        response = api_client.post(f"/api/datasets/{global_dataset.key}/publish/")
 
         assert response.status_code == 400
         assert "already published" in response.data["error"].lower()
@@ -267,14 +267,14 @@ class TestPublishDataset:
         """Published datasets are visible to all authenticated users."""
         # Publish the dataset
         api_client.force_authenticate(user=admin_user)
-        api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         # Create a different user not in the organization
         other_user = User.objects.create_user(username="other", password=TEST_PASSWORD)
         api_client.force_authenticate(user=other_user)
 
         # Should be able to see the published dataset
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
         assert response.status_code == 200
 
         dataset_keys = [d["key"] for d in response.data]
@@ -287,11 +287,11 @@ class TestPublishDataset:
         api_client.force_authenticate(user=admin_user)
 
         # Org dataset - can publish
-        response = api_client.get(f"/api/datasets-v2/{org_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org_dataset.key}/")
         assert response.data["can_publish"] is True
 
         # Global dataset - cannot publish (already global)
-        response = api_client.get(f"/api/datasets-v2/{global_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{global_dataset.key}/")
         assert response.data["can_publish"] is False
 
 
@@ -304,7 +304,7 @@ class TestDatasetDeletion:
         """Can delete unpublished organization dataset."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.delete(f"/api/datasets-v2/{org_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org_dataset.key}/")
         assert response.status_code == 204
 
         # Verify soft delete
@@ -323,7 +323,7 @@ class TestDatasetDeletion:
         api_client.force_authenticate(user=admin_user)
 
         # Publish the dataset
-        api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         # Create a different organization and user
         other_user = User.objects.create_user(
@@ -339,13 +339,13 @@ class TestDatasetDeletion:
         # Other user creates a custom version
         api_client.force_authenticate(user=other_user)
         api_client.post(
-            f"/api/datasets-v2/{org_dataset.key}/create-custom/",
+            f"/api/datasets/{org_dataset.key}/create-custom/",
             {"name": "Dependent Custom", "organization": other_org.id},
         )
 
         # Try to delete - should fail
         api_client.force_authenticate(user=admin_user)
-        response = api_client.delete(f"/api/datasets-v2/{org_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org_dataset.key}/")
 
         assert response.status_code == 400
         assert "custom versions" in response.data["error"].lower()
@@ -357,10 +357,10 @@ class TestDatasetDeletion:
         api_client.force_authenticate(user=admin_user)
 
         # Publish the dataset
-        api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         # Delete it (no dependents)
-        response = api_client.delete(f"/api/datasets-v2/{org_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org_dataset.key}/")
         assert response.status_code == 204
 
 
@@ -373,7 +373,7 @@ class TestTagFiltering:
         """Can filter datasets by single tag."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.get("/api/datasets-v2/?tags=medical")
+        response = api_client.get("/api/datasets/?tags=medical")
 
         assert response.status_code == 200
         assert len(response.data) >= 1
@@ -386,7 +386,7 @@ class TestTagFiltering:
         api_client.force_authenticate(user=admin_user)
 
         # Should match global_dataset (has both 'medical' and 'NHS')
-        response = api_client.get("/api/datasets-v2/?tags=medical,NHS")
+        response = api_client.get("/api/datasets/?tags=medical,NHS")
 
         assert response.status_code == 200
         dataset_keys = [d["key"] for d in response.data]
@@ -400,7 +400,7 @@ class TestTagFiltering:
         """Can search datasets by name."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.get("/api/datasets-v2/?search=Global")
+        response = api_client.get("/api/datasets/?search=Global")
 
         assert response.status_code == 200
         assert len(response.data) >= 1
@@ -412,7 +412,7 @@ class TestTagFiltering:
         """Can search datasets by description."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.get("/api/datasets-v2/?search=global test")
+        response = api_client.get("/api/datasets/?search=global test")
 
         assert response.status_code == 200
         assert global_dataset.key in [d["key"] for d in response.data]
@@ -423,7 +423,7 @@ class TestTagFiltering:
         """Can filter datasets by category."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.get("/api/datasets-v2/?category=nhs_dd")
+        response = api_client.get("/api/datasets/?category=nhs_dd")
 
         assert response.status_code == 200
         dataset_keys = [d["key"] for d in response.data]
@@ -437,7 +437,7 @@ class TestTagFiltering:
         api_client.force_authenticate(user=admin_user)
 
         response = api_client.get(
-            "/api/datasets-v2/?tags=medical&search=Global&category=nhs_dd"
+            "/api/datasets/?tags=medical&search=Global&category=nhs_dd"
         )
 
         assert response.status_code == 200
@@ -449,7 +449,7 @@ class TestTagFiltering:
         """Available tags endpoint returns tag counts."""
         api_client.force_authenticate(user=admin_user)
 
-        response = api_client.get("/api/datasets-v2/available-tags/")
+        response = api_client.get("/api/datasets/available-tags/")
 
         assert response.status_code == 200
         assert "tags" in response.data
@@ -556,15 +556,15 @@ class TestPermissions:
         api_client.force_authenticate(user=admin_user)
 
         # Publish
-        api_client.post(f"/api/datasets-v2/{org_dataset.key}/publish/")
+        api_client.post(f"/api/datasets/{org_dataset.key}/publish/")
 
         # Still editable by org members
-        response = api_client.get(f"/api/datasets-v2/{org_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org_dataset.key}/")
         assert response.data["is_editable"] is True
 
         # Also editable by creator in same org
         api_client.force_authenticate(user=creator_user)
-        response = api_client.get(f"/api/datasets-v2/{org_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org_dataset.key}/")
         assert response.data["is_editable"] is True
 
     def test_is_editable_field_for_custom_version(
@@ -575,12 +575,12 @@ class TestPermissions:
 
         # Create custom version
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/", {}
+            f"/api/datasets/{global_dataset.key}/create-custom/", {}
         )
         custom_key = response.data["key"]
 
         # Should be editable
-        response = api_client.get(f"/api/datasets-v2/{custom_key}/")
+        response = api_client.get(f"/api/datasets/{custom_key}/")
         assert response.data["is_editable"] is True
 
 
@@ -595,7 +595,7 @@ class TestIndividualUserDatasets:
         api_client.force_authenticate(user=user)
 
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "name": "My Personal List",
                 "description": "My personal dataset",
@@ -618,14 +618,14 @@ class TestIndividualUserDatasets:
 
         # Create dataset
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "My List", "description": "Test"},
             format="json",
         )
         dataset_key = response.data["key"]
 
         # View dataset
-        response = api_client.get(f"/api/datasets-v2/{dataset_key}/")
+        response = api_client.get(f"/api/datasets/{dataset_key}/")
         assert response.status_code == 200
         assert response.data["name"] == "My List"
 
@@ -636,7 +636,7 @@ class TestIndividualUserDatasets:
 
         # Create dataset
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "Original", "description": "Test"},
             format="json",
         )
@@ -644,7 +644,7 @@ class TestIndividualUserDatasets:
 
         # Edit dataset
         response = api_client.patch(
-            f"/api/datasets-v2/{dataset_key}/",
+            f"/api/datasets/{dataset_key}/",
             {"name": "Updated Name"},
             format="json",
         )
@@ -659,7 +659,7 @@ class TestIndividualUserDatasets:
         # User1 creates dataset
         api_client.force_authenticate(user=user1)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "User1 List", "description": "Test"},
             format="json",
         )
@@ -668,7 +668,7 @@ class TestIndividualUserDatasets:
         # User2 tries to edit - should get 404 (can't even see it)
         api_client.force_authenticate(user=user2)
         response = api_client.patch(
-            f"/api/datasets-v2/{dataset_key}/",
+            f"/api/datasets/{dataset_key}/",
             {"name": "Hacked"},
             format="json",
         )
@@ -683,14 +683,14 @@ class TestIndividualUserDatasets:
 
         # Create dataset
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "Great List", "description": "Useful data", "tags": ["public"]},
             format="json",
         )
         dataset_key = response.data["key"]
 
         # Publish it
-        response = api_client.post(f"/api/datasets-v2/{dataset_key}/publish/")
+        response = api_client.post(f"/api/datasets/{dataset_key}/publish/")
         assert response.status_code == 200
         assert response.data["is_global"] is True
         assert response.data["published_at"] is not None
@@ -703,7 +703,7 @@ class TestIndividualUserDatasets:
         # User1 creates dataset
         api_client.force_authenticate(user=user1)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "User1 List", "description": "Test"},
             format="json",
         )
@@ -711,7 +711,7 @@ class TestIndividualUserDatasets:
 
         # User2 tries to publish - should get 404 (can't see unpublished)
         api_client.force_authenticate(user=user2)
-        response = api_client.post(f"/api/datasets-v2/{dataset_key}/publish/")
+        response = api_client.post(f"/api/datasets/{dataset_key}/publish/")
         assert (
             response.status_code == 404
         )  # Can't see unpublished datasets from other users
@@ -735,7 +735,7 @@ class TestIndividualUserDatasets:
         # Individual user creates custom version
         api_client.force_authenticate(user=user)
         response = api_client.post(
-            f"/api/datasets-v2/{global_dataset.key}/create-custom/",
+            f"/api/datasets/{global_dataset.key}/create-custom/",
             {"name": "My Custom Version"},
             format="json",
         )
@@ -753,14 +753,14 @@ class TestIndividualUserDatasets:
 
         # Create dataset
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "Temporary List", "description": "Test"},
             format="json",
         )
         dataset_key = response.data["key"]
 
         # Delete it
-        response = api_client.delete(f"/api/datasets-v2/{dataset_key}/")
+        response = api_client.delete(f"/api/datasets/{dataset_key}/")
         assert response.status_code == 204
 
     def test_individual_user_cannot_delete_published_with_dependents(
@@ -773,20 +773,20 @@ class TestIndividualUserDatasets:
         # User1 creates and publishes dataset
         api_client.force_authenticate(user=user1)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "Popular List", "description": "Test"},
             format="json",
         )
         dataset_key = response.data["key"]
-        api_client.post(f"/api/datasets-v2/{dataset_key}/publish/")
+        api_client.post(f"/api/datasets/{dataset_key}/publish/")
 
         # User2 creates custom version
         api_client.force_authenticate(user=user2)
-        api_client.post(f"/api/datasets-v2/{dataset_key}/create-custom/", {})
+        api_client.post(f"/api/datasets/{dataset_key}/create-custom/", {})
 
         # User1 tries to delete - should fail
         api_client.force_authenticate(user=user1)
-        response = api_client.delete(f"/api/datasets-v2/{dataset_key}/")
+        response = api_client.delete(f"/api/datasets/{dataset_key}/")
         assert response.status_code == 400
         assert "custom versions" in response.data["error"]
 
@@ -797,13 +797,13 @@ class TestIndividualUserDatasets:
 
         # Create dataset
         api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "My List", "description": "Test"},
             format="json",
         )
 
         # List datasets
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
         assert response.status_code == 200
 
         # Find our dataset
@@ -819,16 +819,16 @@ class TestIndividualUserDatasets:
         # User1 creates and publishes dataset
         api_client.force_authenticate(user=user1)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "Public List", "description": "For everyone"},
             format="json",
         )
         dataset_key = response.data["key"]
-        api_client.post(f"/api/datasets-v2/{dataset_key}/publish/")
+        api_client.post(f"/api/datasets/{dataset_key}/publish/")
 
         # User2 can see it
         api_client.force_authenticate(user=user2)
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
         public_datasets = [d for d in response.data if d["name"] == "Public List"]
         assert len(public_datasets) == 1
 
@@ -840,7 +840,7 @@ class TestIndividualUserDatasets:
         # User1 creates private dataset
         api_client.force_authenticate(user=user1)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {"name": "Private List", "description": "Just for me"},
             format="json",
         )
@@ -848,10 +848,10 @@ class TestIndividualUserDatasets:
 
         # User2 cannot see it in list
         api_client.force_authenticate(user=user2)
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
         private_datasets = [d for d in response.data if d["name"] == "Private List"]
         assert len(private_datasets) == 0
 
         # User2 cannot access directly
-        response = api_client.get(f"/api/datasets-v2/{dataset_key}/")
+        response = api_client.get(f"/api/datasets/{dataset_key}/")
         assert response.status_code == 404

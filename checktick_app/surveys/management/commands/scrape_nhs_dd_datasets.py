@@ -11,14 +11,13 @@ Usage:
 """
 
 import re
-from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 
-import requests
 from bs4 import BeautifulSoup
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
+import requests
 
 from checktick_app.surveys.models import DataSet
 
@@ -49,7 +48,9 @@ class Command(BaseCommand):
         dry_run = options.get("dry_run", False)
 
         if dry_run:
-            self.stdout.write(self.style.WARNING("🔍 DRY RUN MODE - No changes will be saved"))
+            self.stdout.write(
+                self.style.WARNING("🔍 DRY RUN MODE - No changes will be saved")
+            )
 
         # Get datasets that need scraping
         datasets = DataSet.objects.filter(
@@ -60,7 +61,9 @@ class Command(BaseCommand):
         if dataset_key:
             datasets = datasets.filter(key=dataset_key)
             if not datasets.exists():
-                raise CommandError(f"Dataset '{dataset_key}' not found or not scrapable")
+                raise CommandError(
+                    f"Dataset '{dataset_key}' not found or not scrapable"
+                )
 
         if not datasets.exists():
             self.stdout.write(self.style.WARNING("No datasets found to scrape"))
@@ -80,18 +83,16 @@ class Command(BaseCommand):
 
                 if result == "updated":
                     updated += 1
-                    self.stdout.write(
-                        self.style.SUCCESS(f"✓ Updated: {dataset.name}")
-                    )
+                    self.stdout.write(self.style.SUCCESS(f"✓ Updated: {dataset.name}"))
                 elif result == "scraped":
                     scraped += 1
-                    self.stdout.write(
-                        self.style.SUCCESS(f"✓ Scraped: {dataset.name}")
-                    )
+                    self.stdout.write(self.style.SUCCESS(f"✓ Scraped: {dataset.name}"))
                 elif result == "skipped":
                     skipped += 1
                     self.stdout.write(
-                        self.style.WARNING(f"⊝ Skipped: {dataset.name} (already up-to-date)")
+                        self.style.WARNING(
+                            f"⊝ Skipped: {dataset.name} (already up-to-date)"
+                        )
                     )
 
             except Exception as e:

@@ -17,11 +17,6 @@ from rest_framework.decorators import (
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from checktick_app.surveys.external_datasets import (
-    DatasetFetchError,
-    fetch_dataset,
-    get_available_datasets,
-)
 from checktick_app.surveys.models import (
     AuditLog,
     DataSet,
@@ -1353,81 +1348,6 @@ class DataSetViewSet(viewsets.ModelViewSet):
         instance.save()
 
         return Response(status=204)
-
-
-@api_view(["GET"])
-@permission_classes([permissions.IsAuthenticated])
-def list_datasets(request):
-    """
-    List available prefilled datasets for dropdowns.
-
-    Returns global datasets plus organization-specific datasets
-    if user belongs to an organization.
-    """
-    # Get user's organization from their surveys (if any)
-    organization = None
-    if request.user.is_authenticated:
-        # Get first organization from user's surveys
-        user_survey = request.user.surveys.select_related("organization").first()
-        if user_survey:
-            organization = user_survey.organization
-
-    datasets = get_available_datasets(organization=organization)
-    return Response(
-        {"datasets": [{"key": key, "name": name} for key, name in datasets.items()]}
-    )
-
-
-@api_view(["GET"])
-@permission_classes([permissions.AllowAny])
-def get_dataset(request, dataset_key):
-    """
-    Fetch options for a specific dataset from external API or database.
-
-    Returns cached data when available to minimize external API calls.
-    Allows anonymous access to support public survey submissions.
-
-    Access control: Only returns datasets that are either global or
-    belong to the requesting user's organization.
-    """
-    try:
-        # Get user's organization if authenticated
-        organization = None
-        if request.user.is_authenticated:
-            user_survey = request.user.surveys.select_related("organization").first()
-            if user_survey:
-                organization = user_survey.organization
-
-        # Verify user has access to this dataset
-        from django.db.models import Q
-
-        from checktick_app.surveys.models import DataSet
-
-        dataset_obj = (
-            DataSet.objects.filter(key=dataset_key, is_active=True)
-            .filter(
-                Q(is_global=True) | Q(organization=organization)
-                if organization
-                else Q(is_global=True)
-            )
-            .first()
-        )
-
-        if dataset_obj:
-            # Return from database
-            options = dataset_obj.options
-        else:
-            # Fall back to external API (for backward compatibility)
-            options = fetch_dataset(dataset_key)
-
-        return Response({"dataset_key": dataset_key, "options": options})
-    except DatasetFetchError as e:
-        # Check if it's a validation error (invalid key) vs external API error
-        error_msg = str(e)
-        if "Unknown dataset key" in error_msg:
-            return Response({"error": error_msg}, status=400)
-        # External API failures return 502 Bad Gateway
-        return Response({"error": error_msg}, status=502)
 
 
 @csp_exempt

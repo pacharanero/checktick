@@ -2,11 +2,11 @@
 Tests for DataSet API endpoints.
 
 Tests cover:
-- GET /api/datasets-v2/ - List datasets
-- GET /api/datasets-v2/{key}/ - Retrieve dataset
-- POST /api/datasets-v2/ - Create dataset
-- PATCH /api/datasets-v2/{key}/ - Update dataset
-- DELETE /api/datasets-v2/{key}/ - Delete dataset
+- GET /api/datasets/ - List datasets
+- GET /api/datasets/{key}/ - Retrieve dataset
+- POST /api/datasets/ - Create dataset
+- PATCH /api/datasets/{key}/ - Update dataset
+- DELETE /api/datasets/{key}/ - Delete dataset
 
 With different user roles and access scenarios.
 """
@@ -154,13 +154,13 @@ def nhs_dd_dataset(db):
 
 @pytest.mark.django_db
 class TestDataSetListAPI:
-    """Tests for GET /api/datasets-v2/"""
+    """Tests for GET /api/datasets/"""
 
     def test_anonymous_user_sees_only_global_datasets(
         self, api_client, global_dataset, org1_dataset
     ):
         """Anonymous users should only see global datasets."""
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
 
         assert response.status_code == 200
         data = response.json()
@@ -172,7 +172,7 @@ class TestDataSetListAPI:
     ):
         """Admin users should see global + their organization's datasets."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
 
         assert response.status_code == 200
         data = response.json()
@@ -185,7 +185,7 @@ class TestDataSetListAPI:
     ):
         """Viewer users should see global + their organization's datasets."""
         api_client.force_authenticate(user=viewer_user)
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
 
         assert response.status_code == 200
         data = response.json()
@@ -198,7 +198,7 @@ class TestDataSetListAPI:
     ):
         """Users should not see datasets from other organizations."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
 
         assert response.status_code == 200
         data = response.json()
@@ -208,11 +208,11 @@ class TestDataSetListAPI:
 
 @pytest.mark.django_db
 class TestDataSetRetrieveAPI:
-    """Tests for GET /api/datasets-v2/{key}/"""
+    """Tests for GET /api/datasets/{key}/"""
 
     def test_retrieve_global_dataset(self, api_client, global_dataset):
         """Anyone can retrieve global datasets."""
-        response = api_client.get(f"/api/datasets-v2/{global_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{global_dataset.key}/")
 
         assert response.status_code == 200
         data = response.json()
@@ -223,7 +223,7 @@ class TestDataSetRetrieveAPI:
     def test_retrieve_org_dataset_as_member(self, api_client, admin_user, org1_dataset):
         """Organization members can retrieve their org's datasets."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.get(f"/api/datasets-v2/{org1_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org1_dataset.key}/")
 
         assert response.status_code == 200
         data = response.json()
@@ -235,14 +235,14 @@ class TestDataSetRetrieveAPI:
     ):
         """Users cannot retrieve datasets from other organizations."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.get(f"/api/datasets-v2/{org2_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org2_dataset.key}/")
 
         assert response.status_code == 404
 
     def test_retrieve_nhs_dd_dataset(self, api_client, admin_user, nhs_dd_dataset):
         """Anyone can retrieve NHS DD datasets."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.get(f"/api/datasets-v2/{nhs_dd_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{nhs_dd_dataset.key}/")
 
         assert response.status_code == 200
         data = response.json()
@@ -252,18 +252,18 @@ class TestDataSetRetrieveAPI:
 
 @pytest.mark.django_db
 class TestDataSetCreateAPI:
-    """Tests for POST /api/datasets-v2/"""
+    """Tests for POST /api/datasets/"""
 
     def test_admin_can_create_dataset(self, api_client, admin_user, org1):
         """ADMIN users can create datasets for their organization."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "key": "new_dataset",
                 "name": "New Dataset",
                 "description": "Test dataset",
-                "options": ["Option A", "Option B"],
+                "options": {"opt_a": "Option A", "opt_b": "Option B"},
                 "organization": org1.id,
             },
             format="json",
@@ -271,7 +271,7 @@ class TestDataSetCreateAPI:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["key"] == "new_dataset"
+        assert data["key"].startswith("new-dataset_")  # Auto-generated key
         assert data["organization"] == org1.id
         assert data["created_by"] == admin_user.id
         assert data["is_global"] is False
@@ -280,28 +280,30 @@ class TestDataSetCreateAPI:
         """CREATOR users can create datasets for their organization."""
         api_client.force_authenticate(user=creator_user)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "key": "creator_dataset",
                 "name": "Creator Dataset",
-                "options": ["Option 1"],
+                "options": {"opt_1": "Option 1"},
                 "organization": org1.id,
             },
             format="json",
         )
 
         assert response.status_code == 201
-        assert response.json()["key"] == "creator_dataset"
+        assert response.json()["key"].startswith(
+            "creator-dataset_"
+        )  # Auto-generated key
 
     def test_viewer_cannot_create_dataset(self, api_client, viewer_user, org1):
         """VIEWER users cannot create datasets."""
         api_client.force_authenticate(user=viewer_user)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "key": "viewer_dataset",
                 "name": "Viewer Dataset",
-                "options": ["Option 1"],
+                "options": {"opt_1": "Option 1"},
                 "organization": org1.id,
             },
             format="json",
@@ -312,11 +314,11 @@ class TestDataSetCreateAPI:
     def test_anonymous_cannot_create_dataset(self, api_client, org1):
         """Anonymous users cannot create datasets."""
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "key": "anon_dataset",
                 "name": "Anon Dataset",
-                "options": ["Option 1"],
+                "options": {"opt_1": "Option 1"},
                 "organization": org1.id,
             },
             format="json",
@@ -328,11 +330,11 @@ class TestDataSetCreateAPI:
         """Users cannot create datasets for organizations they don't belong to."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "key": "other_org_dataset",
                 "name": "Other Org Dataset",
-                "options": ["Option 1"],
+                "options": {"opt_1": "Option 1"},
                 "organization": org2.id,
             },
             format="json",
@@ -341,21 +343,22 @@ class TestDataSetCreateAPI:
         assert response.status_code == 403
 
     def test_create_dataset_validates_key_format(self, api_client, admin_user, org1):
-        """Dataset key must be slug-like (lowercase, no spaces)."""
+        """Dataset key is auto-generated and always valid (this test is no longer relevant)."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
-                "key": "Invalid Key With Spaces",
-                "name": "Invalid Dataset",
-                "options": ["Option 1"],
+                "name": "Invalid Dataset",  # Key is auto-generated from name
+                "options": {"opt_1": "Option 1"},
                 "organization": org1.id,
             },
             format="json",
         )
 
-        assert response.status_code == 400
-        assert "key" in response.json()
+        assert (
+            response.status_code == 201
+        )  # Keys are auto-generated, no validation needed
+        assert response.json()["key"].startswith("invalid-dataset_")
 
     def test_create_dataset_validates_options_is_list(
         self, api_client, admin_user, org1
@@ -363,7 +366,7 @@ class TestDataSetCreateAPI:
         """Dataset options must be a list."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.post(
-            "/api/datasets-v2/",
+            "/api/datasets/",
             {
                 "key": "invalid_options",
                 "name": "Invalid Options",
@@ -378,16 +381,20 @@ class TestDataSetCreateAPI:
 
 @pytest.mark.django_db
 class TestDataSetUpdateAPI:
-    """Tests for PATCH /api/datasets-v2/{key}/"""
+    """Tests for PATCH /api/datasets/{key}/"""
 
     def test_admin_can_update_org_dataset(self, api_client, admin_user, org1_dataset):
         """ADMIN users can update their organization's datasets."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.patch(
-            f"/api/datasets-v2/{org1_dataset.key}/",
+            f"/api/datasets/{org1_dataset.key}/",
             {
                 "name": "Updated Dataset Name",
-                "options": ["New Option 1", "New Option 2", "New Option 3"],
+                "options": {
+                    "opt_1": "New Option 1",
+                    "opt_2": "New Option 2",
+                    "opt_3": "New Option 3",
+                },
             },
             format="json",
         )
@@ -404,7 +411,7 @@ class TestDataSetUpdateAPI:
         """CREATOR users can update their organization's datasets."""
         api_client.force_authenticate(user=creator_user)
         response = api_client.patch(
-            f"/api/datasets-v2/{org1_dataset.key}/",
+            f"/api/datasets/{org1_dataset.key}/",
             {"description": "Updated by creator"},
             format="json",
         )
@@ -416,7 +423,7 @@ class TestDataSetUpdateAPI:
         """VIEWER users cannot update datasets."""
         api_client.force_authenticate(user=viewer_user)
         response = api_client.patch(
-            f"/api/datasets-v2/{org1_dataset.key}/",
+            f"/api/datasets/{org1_dataset.key}/",
             {"name": "Viewer Update"},
             format="json",
         )
@@ -429,7 +436,7 @@ class TestDataSetUpdateAPI:
         """Users cannot update datasets from other organizations."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.patch(
-            f"/api/datasets-v2/{org2_dataset.key}/",
+            f"/api/datasets/{org2_dataset.key}/",
             {"name": "Unauthorized Update"},
             format="json",
         )
@@ -440,7 +447,7 @@ class TestDataSetUpdateAPI:
         """NHS DD datasets cannot be updated."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.patch(
-            f"/api/datasets-v2/{nhs_dd_dataset.key}/",
+            f"/api/datasets/{nhs_dd_dataset.key}/",
             {"name": "Modified NHS DD"},
             format="json",
         )
@@ -467,12 +474,12 @@ class TestDataSetUpdateAPI:
 
 @pytest.mark.django_db
 class TestDataSetDeleteAPI:
-    """Tests for DELETE /api/datasets-v2/{key}/"""
+    """Tests for DELETE /api/datasets/{key}/"""
 
     def test_admin_can_delete_org_dataset(self, api_client, admin_user, org1_dataset):
         """ADMIN users can delete their organization's datasets."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.delete(f"/api/datasets-v2/{org1_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org1_dataset.key}/")
 
         assert response.status_code == 204
 
@@ -485,14 +492,14 @@ class TestDataSetDeleteAPI:
     ):
         """CREATOR users can delete their organization's datasets."""
         api_client.force_authenticate(user=creator_user)
-        response = api_client.delete(f"/api/datasets-v2/{org1_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org1_dataset.key}/")
 
         assert response.status_code == 204
 
     def test_viewer_cannot_delete_dataset(self, api_client, viewer_user, org1_dataset):
         """VIEWER users cannot delete datasets."""
         api_client.force_authenticate(user=viewer_user)
-        response = api_client.delete(f"/api/datasets-v2/{org1_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org1_dataset.key}/")
 
         assert response.status_code == 403
 
@@ -501,14 +508,14 @@ class TestDataSetDeleteAPI:
     ):
         """Users cannot delete datasets from other organizations."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.delete(f"/api/datasets-v2/{org2_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{org2_dataset.key}/")
 
         assert response.status_code == 404
 
     def test_cannot_delete_nhs_dd_dataset(self, api_client, admin_user, nhs_dd_dataset):
         """NHS DD datasets cannot be deleted."""
         api_client.force_authenticate(user=admin_user)
-        response = api_client.delete(f"/api/datasets-v2/{nhs_dd_dataset.key}/")
+        response = api_client.delete(f"/api/datasets/{nhs_dd_dataset.key}/")
 
         assert response.status_code == 403
 
@@ -517,10 +524,10 @@ class TestDataSetDeleteAPI:
         api_client.force_authenticate(user=admin_user)
 
         # Delete the dataset
-        api_client.delete(f"/api/datasets-v2/{org1_dataset.key}/")
+        api_client.delete(f"/api/datasets/{org1_dataset.key}/")
 
         # List datasets
-        response = api_client.get("/api/datasets-v2/")
+        response = api_client.get("/api/datasets/")
         keys = {d["key"] for d in response.json()}
 
         assert "org1_dataset" not in keys
@@ -537,11 +544,11 @@ class TestDataSetPermissions:
         api_client.force_authenticate(user=admin_user)
 
         # Org dataset
-        response = api_client.get(f"/api/datasets-v2/{org1_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org1_dataset.key}/")
         assert response.json()["is_editable"] is True
 
         # NHS DD dataset
-        response = api_client.get(f"/api/datasets-v2/{nhs_dd_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{nhs_dd_dataset.key}/")
         assert response.json()["is_editable"] is False
 
     def test_is_editable_field_correct_for_viewer(
@@ -549,20 +556,22 @@ class TestDataSetPermissions:
     ):
         """is_editable should be False for VIEWER users."""
         api_client.force_authenticate(user=viewer_user)
-        response = api_client.get(f"/api/datasets-v2/{org1_dataset.key}/")
+        response = api_client.get(f"/api/datasets/{org1_dataset.key}/")
         assert response.json()["is_editable"] is False
 
-    def test_user_without_org_cannot_create_dataset(self, api_client, db):
-        """Users without organization membership cannot create datasets."""
+    def test_user_without_org_can_create_individual_dataset(self, api_client, db):
+        """Users without organization can create individual datasets."""
         user = User.objects.create_user(
             username="no_org_user", email="noorg@example.com", password=TEST_PASSWORD
         )
         api_client.force_authenticate(user=user)
 
         response = api_client.post(
-            "/api/datasets-v2/",
-            {"key": "no_org_dataset", "name": "No Org Dataset", "options": ["A"]},
+            "/api/datasets/",
+            {"name": "No Org Dataset", "options": {"a": "A"}},
             format="json",
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 201  # Individual users can create datasets
+        assert response.json()["organization"] is None  # No organization
+        assert response.json()["created_by"] == user.id

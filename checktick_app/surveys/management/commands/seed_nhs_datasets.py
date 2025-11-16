@@ -250,7 +250,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "demographic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -264,7 +263,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "demographic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -278,7 +276,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -292,7 +289,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "mental health", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -306,7 +302,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["clinic", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -320,7 +315,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["surgical", "medical", "procedural", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -334,7 +328,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -348,7 +341,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "procedural", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -362,7 +354,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -376,7 +367,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -390,7 +380,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["paediatric", "medical", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -404,7 +393,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["clinic", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -418,7 +406,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -432,7 +419,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -446,7 +432,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["clinic", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -460,7 +445,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -474,7 +458,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "procedural", "maternity", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -488,7 +471,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -502,7 +484,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -516,7 +497,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "neonatal", "paediatric", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -530,7 +510,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["demographic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -543,7 +522,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "mental health", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -556,7 +534,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "mental health", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -570,7 +547,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "mental health", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -584,7 +560,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "procedural", "maternity", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -598,7 +573,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -612,7 +586,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -625,7 +598,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -639,7 +611,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -653,7 +624,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -667,7 +637,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["demographic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -681,7 +650,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["demographic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -695,7 +663,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "maternity", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -708,7 +675,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "maternity", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -722,7 +688,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -736,7 +701,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -750,7 +714,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["mental health", "clinic", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -763,7 +726,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -776,7 +738,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -790,7 +751,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["clinic", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -804,7 +764,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["paediatric", "administrative", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -817,7 +776,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["medical", "procedural", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -831,7 +789,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["surgical", "procedural", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -845,7 +802,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["administrative", "mental health", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
             {
@@ -859,7 +815,6 @@ class Command(BaseCommand):
                 "is_global": True,
                 "tags": ["neonatal", "paediatric", "medical", "NHS"],
                 "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-
                 "format_pattern": "code - description",
             },
         ]
