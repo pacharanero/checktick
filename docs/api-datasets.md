@@ -320,14 +320,21 @@ curl https://checktick.example.com/api/datasets/available-tags/
 
 ## Permissions Summary
 
-| Endpoint | Anonymous | Authenticated | Org CREATOR/ADMIN |
-|----------|-----------|---------------|-------------------|
-| List datasets | Global only | Global + org | Global + org |
-| Get dataset detail | Global only | Global + org | Global + org |
-| Create custom version | ❌ | ✅* | ✅ |
-| Update dataset | ❌ | ❌ | ✅ (own org) |
-| Publish dataset | ❌ | ❌ | ✅ (own org) |
-| Delete dataset | ❌ | ❌ | ✅ (own org) |
+| Endpoint | Anonymous | Individual User | Org VIEWER | Org CREATOR/ADMIN |
+|----------|-----------|-----------------|------------|-------------------|
+| List datasets | ❌ | Global + own | Global + org | Global + org |
+| Get dataset detail | Global only | Global + own | Global + org | Global + org |
+| Create dataset | ❌ | ✅ | ❌ | ✅ (for org) |
+| Create custom version | ❌ | ✅ | ❌ | ✅ |
+| Update dataset | ❌ | ✅ (own only) | ❌ | ✅ (own org) |
+| Publish dataset | ❌ | ✅ (own only) | ❌ | ✅ (own org) |
+| Delete dataset | ❌ | ✅ (own only) | ❌ | ✅ (own org) |
+
+**Role Definitions:**
+
+- **Individual User**: Authenticated user not part of any organization
+- **Org VIEWER**: Read-only access to organization datasets
+- **Org CREATOR/ADMIN**: Full dataset management for their organization
 
 *Individual users can create custom versions. This will require a pro account in future releases.
 

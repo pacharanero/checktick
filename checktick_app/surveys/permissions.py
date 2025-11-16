@@ -91,7 +91,7 @@ def can_create_datasets(user) -> bool:
 
     Allowed:
     - Individual users (not part of any organization)
-    - Organization members with ADMIN, CREATOR, or EDITOR roles
+    - Organization members with ADMIN or CREATOR roles
 
     Not allowed:
     - VIEWER role members (read-only, cannot create anything)
@@ -111,11 +111,16 @@ def can_create_datasets(user) -> bool:
     if not memberships.exists():
         return True
 
-    # If user has ANY non-VIEWER role in any org, allow
-    if memberships.exclude(role=OrganizationMembership.Role.VIEWER).exists():
+    # If user has ADMIN or CREATOR role in any org, allow
+    if memberships.filter(
+        role__in=[
+            OrganizationMembership.Role.ADMIN,
+            OrganizationMembership.Role.CREATOR,
+        ]
+    ).exists():
         return True
 
-    # User only has VIEWER roles - deny (read-only)
+    # User only has VIEWER or EDITOR roles - deny
     return False
 
 

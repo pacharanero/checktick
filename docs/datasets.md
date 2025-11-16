@@ -217,6 +217,11 @@ Tags help organize and find datasets quickly.
 
 **Cannot delete if published with dependents from other organizations
 
+**Role clarifications:**
+
+- **VIEWER**: Read-only access - can view datasets but cannot create or modify
+- **CREATOR/ADMIN**: Full dataset management capabilities for their organization
+
 ## Related Documentation
 
 - **[NHS DD Dataset Reference](nhs-data-dictionary-datasets.md)** - Complete list with source URLs
