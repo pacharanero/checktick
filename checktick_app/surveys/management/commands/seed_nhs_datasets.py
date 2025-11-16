@@ -1,22 +1,25 @@
 """
 Management command to seed NHS Data Dictionary standard datasets.
 
+Reads dataset definitions from docs/nhs-data-dictionary-datasets.md and creates
+DataSet records in the database. The scrape command will then populate the options.
+
 Usage:
     python manage.py seed_nhs_datasets
     python manage.py seed_nhs_datasets --clear  # Clear existing NHS DD datasets first
-
-Note: Some datasets are marked with options=["PENDING_SCRAPE"] which means they need
-to be populated by scraping the NHS DD website. Use the sync_external_datasets command
-or manually scrape and update these datasets.
 """
 
+from pathlib import Path
+import re
+
 from django.core.management.base import BaseCommand
+from django.utils.text import slugify
 
 from checktick_app.surveys.models import DataSet
 
 
 class Command(BaseCommand):
-    help = "Seed NHS Data Dictionary standard datasets"
+    help = "Seed NHS Data Dictionary standard datasets from markdown file"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -32,818 +35,170 @@ class Command(BaseCommand):
                 self.style.WARNING(f"Deleted {deleted_count} existing NHS DD datasets")
             )
 
-        # NHS DD datasets to seed
-        nhs_dd_datasets = [
-            {
-                "key": "main_specialty_code",
-                "name": "Main Specialty Code",
-                "description": "NHS Data Dictionary - Main Specialty Codes for medical practitioners",
-                "category": "nhs_dd",
-                "source_type": "manual",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "specialty", "NHS"],
-                "options": [
-                    "100 - General Surgery",
-                    "101 - Urology",
-                    "110 - Trauma and Orthopaedic Surgery",
-                    "120 - ENT",
-                    "130 - Ophthalmology",
-                    "140 - Oral Surgery",
-                    "141 - Restorative Dentistry",
-                    "142 - Paediatric Dentistry",
-                    "143 - Orthodontics",
-                    "170 - Cardiothoracic Surgery",
-                    "180 - Emergency Medicine",
-                    "190 - Anaesthetics",
-                    "191 - Pain Management",
-                    "300 - General Medicine",
-                    "301 - Gastroenterology",
-                    "302 - Endocrinology and Diabetes",
-                    "303 - Clinical Haematology",
-                    "304 - Clinical Physiology",
-                    "305 - Clinical Pharmacology",
-                    "310 - Audio Vestibular Medicine",
-                    "320 - Cardiology",
-                    "330 - Dermatology",
-                    "340 - Respiratory Medicine (also known as Thoracic Medicine)",
-                    "350 - Infectious Diseases",
-                    "352 - Tropical Medicine",
-                    "360 - Genitourinary Medicine",
-                    "361 - Nephrology",
-                    "370 - Medical Oncology",
-                    "371 - Nuclear Medicine",
-                    "400 - Neurology",
-                    "401 - Clinical Neurophysiology",
-                    "410 - Rheumatology",
-                    "420 - Paediatrics",
-                    "421 - Paediatric Neurology",
-                    "430 - Geriatric Medicine",
-                    "450 - Dental Medicine Specialties",
-                    "451 - Special Care Dentistry",
-                    "460 - Medical Ophthalmology",
-                    "501 - Obstetrics",
-                    "502 - Gynaecology",
-                    "560 - Midwifery",
-                    "650 - Physiotherapy",
-                    "651 - Occupational Therapy",
-                    "652 - Speech and Language Therapy",
-                    "653 - Podiatry",
-                    "654 - Dietetics",
-                    "655 - Orthoptics",
-                    "656 - Clinical Psychology",
-                    "657 - Prosthetics",
-                    "658 - Orthotics",
-                    "659 - Dramatherapy",
-                    "660 - Art Therapy",
-                    "661 - Music Therapy",
-                    "700 - Learning Disability",
-                    "710 - Adult Mental Illness",
-                    "711 - Child and Adolescent Psychiatry",
-                    "712 - Forensic Psychiatry",
-                    "713 - Medical Psychotherapy",
-                    "715 - Old Age Psychiatry",
-                    "800 - Clinical Oncology",
-                    "810 - Radiology",
-                    "820 - General Pathology",
-                    "821 - Blood Transfusion",
-                    "822 - Chemical Pathology",
-                    "823 - Haematology",
-                    "824 - Immunopathology",
-                    "830 - Immunopathology",
-                    "831 - Occupational Medicine",
-                    "832 - Public Health Medicine",
-                    "833 - Community Sexual and Reproductive Health",
-                    "834 - Rehabilitation Medicine",
-                    "900 - Community Medicine",
-                    "901 - Occupational Health",
-                    "950 - Nursing",
-                    "960 - Allied Health Professional",
-                ],
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "treatment_function_code",
-                "name": "Treatment Function Code",
-                "description": "NHS Data Dictionary - Treatment Function Codes",
-                "category": "nhs_dd",
-                "source_type": "manual",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "treatment", "NHS"],
-                "options": [
-                    "100 - General Surgery Service",
-                    "101 - Urology Service",
-                    "110 - Trauma & Orthopaedics Service",
-                    "120 - Ear Nose and Throat Service",
-                    "130 - Ophthalmology Service",
-                    "140 - Oral Surgery Service",
-                    "141 - Restorative Dentistry Service",
-                    "142 - Paediatric Dentistry Service",
-                    "143 - Orthodontics Service",
-                    "160 - Plastic Surgery Service",
-                    "170 - Cardiothoracic Surgery Service",
-                    "180 - Emergency Medicine Service",
-                    "190 - Anaesthetics Service",
-                    "192 - Critical Care Medicine Service",
-                    "300 - General Medicine Service",
-                    "301 - Gastroenterology Service",
-                    "302 - Endocrinology Service",
-                    "303 - Clinical Haematology Service",
-                    "305 - Clinical Pharmacology Service",
-                    "310 - Audio Vestibular Medicine Service",
-                    "320 - Cardiology Service",
-                    "321 - Paediatric Cardiology Service",
-                    "325 - Sport and Exercise Medicine Service",
-                    "326 - Acute Internal Medicine Service",
-                    "330 - Dermatology Service",
-                    "340 - Respiratory Medicine Service",
-                    "350 - Infectious Diseases Service",
-                    "352 - Tropical Medicine Service",
-                    "360 - Genitourinary Medicine Service",
-                    "361 - Renal Medicine Service",
-                    "370 - Medical Oncology Service",
-                    "371 - Nuclear Medicine Service",
-                    "400 - Neurology Service",
-                    "401 - Clinical Neurophysiology Service",
-                    "410 - Rheumatology Service",
-                    "420 - Paediatrics Service",
-                    "421 - Paediatric Neurology Service",
-                    "430 - Geriatric Medicine Service",
-                    "450 - Dental Medicine Service",
-                    "451 - Special Care Dentistry Service",
-                    "460 - Medical Ophthalmology Service",
-                    "501 - Obstetrics Service",
-                    "502 - Gynaecology Service",
-                    "503 - Gynaecological Oncology Service",
-                    "560 - Midwifery Service",
-                    "650 - Physiotherapy Service",
-                    "651 - Occupational Therapy Service",
-                    "652 - Speech and Language Therapy Service",
-                    "653 - Podiatry Service",
-                    "654 - Dietetics Service",
-                    "655 - Orthoptics Service",
-                    "656 - Clinical Psychology Service",
-                    "657 - Prosthetics Service",
-                    "658 - Orthotics Service",
-                    "700 - Learning Disability Service",
-                    "710 - Adult Mental Illness Service",
-                    "711 - Child and Adolescent Psychiatry Service",
-                    "712 - Forensic Psychiatry Service",
-                    "713 - Psychotherapy Service",
-                    "715 - Old Age Psychiatry Service",
-                    "800 - Clinical Oncology Service",
-                    "810 - Radiology Service",
-                    "812 - Diagnostic Imaging Service",
-                    "820 - General Pathology Service",
-                    "821 - Blood Transfusion Service",
-                    "822 - Chemical Pathology Service",
-                    "823 - Haematology Service",
-                    "824 - Histopathology Service",
-                    "830 - Immunopathology Service",
-                    "831 - Medical Microbiology and Virology Service",
-                    "834 - Medical Microbiology Service",
-                    "840 - Audiology Service",
-                    "920 - Diabetic Medicine Service",
-                ],
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "ethnic_category",
-                "name": "Ethnic Category",
-                "description": "NHS Data Dictionary - Ethnic Category codes",
-                "category": "nhs_dd",
-                "source_type": "manual",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["demographics", "NHS"],
-                "options": [
-                    "A - White - British",
-                    "B - White - Irish",
-                    "C - White - Any other White background",
-                    "D - Mixed - White and Black Caribbean",
-                    "E - Mixed - White and Black African",
-                    "F - Mixed - White and Asian",
-                    "G - Mixed - Any other mixed background",
-                    "H - Asian or Asian British - Indian",
-                    "J - Asian or Asian British - Pakistani",
-                    "K - Asian or Asian British - Bangladeshi",
-                    "L - Asian or Asian British - Any other Asian background",
-                    "M - Black or Black British - Caribbean",
-                    "N - Black or Black British - African",
-                    "P - Black or Black British - Any other Black background",
-                    "R - Other Ethnic Groups - Chinese",
-                    "S - Other Ethnic Groups - Any other ethnic group",
-                    "Z - Not stated",
-                ],
-                "format_pattern": "code - description",
-            },
-            # Additional NHS DD datasets - options need to be scraped
-            {
-                "key": "accommodation_status_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/accommodation_status_code.html",
-                "name": "Accommodation Status",
-                "description": "NHS Data Dictionary - Accommodation Status Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "demographic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "accommodation_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/accommodation_type.html",
-                "name": "Accommodation Type",
-                "description": "NHS Data Dictionary - Accommodation Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "demographic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "admission_source_hospital",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/admission_source__hospital_provider_spell_.html",
-                "name": "Admission Source (Hospital Provider)",
-                "description": "NHS Data Dictionary - Admission Source (Hospital Provider Spell)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "admission_source_mental_health",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/admission_source__mental_health_hospital_provider_spell_.html",
-                "name": "Admission Source (Mental Health Provider)",
-                "description": "NHS Data Dictionary - Admission Source (Mental Health Hospital Provider Spell)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "mental health", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "alcohol_use_indicator",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/alcohol_use_indicator.html",
-                "name": "Alcohol Use Indicator",
-                "description": "NHS Data Dictionary - Alcohol Use Indicator",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["clinic", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "asa_physical_status",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/asa_physical_status_classification_system_code.html",
-                "name": "ASA Physical Status Classification",
-                "description": "NHS Data Dictionary - ASA Physical Status Classification System Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["surgical", "medical", "procedural", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "blood_group_baby",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/blood_group__baby_.html",
-                "name": "Blood Group (Baby)",
-                "description": "NHS Data Dictionary - Blood Group (Baby)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "blood_transfusion_product_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/blood_transfusion_product_type.html",
-                "name": "Blood Transfusion Product Type",
-                "description": "NHS Data Dictionary - Blood Transfusion Product Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "procedural", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "care_professional_job_role",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/care_professional__job_role_code_.html",
-                "name": "Care Professional Job Role Code",
-                "description": "NHS Data Dictionary - Care Professional (Job Role Code)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "care_professional_main_specialty",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/care_professional_main_specialty_code.html",
-                "name": "Care Professional Main Specialty Code",
-                "description": "NHS Data Dictionary - Care Professional Main Specialty Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "childhood_immunisation_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/childhood_immunisation_type__cover_.html",
-                "name": "Childhood Immunisation Type (Cover)",
-                "description": "NHS Data Dictionary - Childhood Immunisation Type (Cover)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["paediatric", "medical", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "clinical_frailty_scale",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/clinical_frailty_scale_point.html",
-                "name": "Clinical Frailty Scale Point",
-                "description": "NHS Data Dictionary - Clinical Frailty Scale Point",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["clinic", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "consultation_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/consultation_type.html",
-                "name": "Consultation Type",
-                "description": "NHS Data Dictionary - Consultation Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "consultation_medium_used",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/consultation_medium_used.html",
-                "name": "Consultation Medium Used",
-                "description": "NHS Data Dictionary - Consultation Medium Used",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "contraception_other_method",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/contraception_other_method.html",
-                "name": "Contraception Other Method",
-                "description": "NHS Data Dictionary - Contraception Other Method",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["clinic", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "death_location_type_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/death_location_type_code__actual_.html",
-                "name": "Death Location Type Code",
-                "description": "NHS Data Dictionary - Death Location Type Code (Actual)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "delivery_method_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/delivery_method_code.html",
-                "name": "Delivery Method Code",
-                "description": "NHS Data Dictionary - Delivery Method Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "procedural", "maternity", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "emergency_care_attendance_category",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/emergency_care_attendance_category.html",
-                "name": "Emergency Care Attendance Category",
-                "description": "NHS Data Dictionary - Emergency Care Attendance Category",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "employee_absence_category",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/employee_absence_category.html",
-                "name": "Employee Absence Category",
-                "description": "NHS Data Dictionary - Employee Absence Category",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "enteral_feeding_method",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/enteral_feeding_method.html",
-                "name": "Enteral Feeding Method",
-                "description": "NHS Data Dictionary - Enteral Feeding Method",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "neonatal", "paediatric", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "gender_identity_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/gender_identity_code.html",
-                "name": "Gender Identity Code",
-                "description": "NHS Data Dictionary - Gender Identity Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["demographic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "mental_health_absence_without_leave_end_reason",
-                "name": "Mental Health Absence Without Leave End Reason",
-                "description": "NHS Data Dictionary - Mental Health Absence Without Leave End Reason",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "mental health", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "mental_health_act_legal_status_code",
-                "name": "Mental Health Act Legal Status Code",
-                "description": "NHS Data Dictionary - Mental Health Act Legal Status Classification Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "mental health", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "mental_health_admitted_patient_classification",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/mental_health_admitted_patient_classification_type.html",
-                "name": "Mental Health Admitted Patient Classification",
-                "description": "NHS Data Dictionary - Mental Health Admitted Patient Classification Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "mental health", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "mode_of_delivery",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/mode_of_delivery.html",
-                "name": "Mode of Delivery",
-                "description": "NHS Data Dictionary - Mode of Delivery",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "procedural", "maternity", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "neonatal_consciousness_status",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/neonatal_consciousness_status.html",
-                "name": "Neonatal Consciousness Status",
-                "description": "NHS Data Dictionary - Neonatal Consciousness Status",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "newborn_blood_spot_test_outcome",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/newborn_blood_spot_test_outcome_status_code__congenital_hypothyroidism_.html",
-                "name": "Newborn Blood Spot Test Outcome Status Code",
-                "description": "NHS Data Dictionary - Newborn Blood Spot Test Outcome Status Code (Congenital Hypothyroidism)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "newborn_hearing_screen_outcome",
-                "name": "Newborn Hearing Screening Outcome",
-                "description": "NHS Data Dictionary - Newborn Hearing Screening Outcome",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "outpatient_attendance_outcome",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/out-patient_attendance_outcome.html",
-                "name": "Out-Patient Attendance Outcome",
-                "description": "NHS Data Dictionary - Out-Patient Attendance Outcome",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "patient_classification_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/patient_classification_code.html",
-                "name": "Patient Classification Code",
-                "description": "NHS Data Dictionary - Patient Classification Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "person_stated_gender_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/person_stated_gender_code.html",
-                "name": "Person Stated Gender Code",
-                "description": "NHS Data Dictionary - Person Stated Gender Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["demographic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "person_stated_sexual_orientation",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/person_stated_sexual_orientation_code.html",
-                "name": "Person Stated Sexual Orientation",
-                "description": "NHS Data Dictionary - Person Stated Sexual Orientation Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["demographic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "pregnancy_outcome",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/pregnancy_outcome.html",
-                "name": "Pregnancy Outcome",
-                "description": "NHS Data Dictionary - Pregnancy Outcome",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "maternity", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "presentation_of_fetus_at_delivery",
-                "name": "Presentation of Fetus at Delivery",
-                "description": "NHS Data Dictionary - Presentation of Fetus at Delivery",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "maternity", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "primitive_reflexes_status",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/primitive_reflexes_status.html",
-                "name": "Primitive Reflexes Status",
-                "description": "NHS Data Dictionary - Primitive Reflexes Status",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "qualification_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/qualification_type.html",
-                "name": "Qualification Type",
-                "description": "NHS Data Dictionary - Qualification Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "restrictive_intervention_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/restrictive_intervention_type.html",
-                "name": "Restrictive Intervention Type",
-                "description": "NHS Data Dictionary - Restrictive Intervention Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["mental health", "clinic", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "retinopathy_of_prematurity_left_eye",
-                "name": "Retinopathy of Prematurity (Left Eye)",
-                "description": "NHS Data Dictionary - Retinopathy of Prematurity Stage (Left Eye)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "retinopathy_of_prematurity_right_eye",
-                "name": "Retinopathy of Prematurity (Right Eye)",
-                "description": "NHS Data Dictionary - Retinopathy of Prematurity Stage (Right Eye)",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "smoking_status_code",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/smoking_status_code.html",
-                "name": "Smoking Status Code",
-                "description": "NHS Data Dictionary - Smoking Status Code",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["clinic", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "special_educational_need_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/special_educational_need_type.html",
-                "name": "Special Educational Need Type",
-                "description": "NHS Data Dictionary - Special Educational Need Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["paediatric", "administrative", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "specialist_radiotherapy_treatment_type",
-                "name": "Specialist Radiotherapy Treatment Type",
-                "description": "NHS Data Dictionary - Specialist Radiotherapy Treatment Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["medical", "procedural", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "surgical_access_type",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/surgical_access_type.html",
-                "name": "Surgical Access Type",
-                "description": "NHS Data Dictionary - Surgical Access Type",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["surgical", "procedural", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "ward_security_level",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/ward_security_level.html",
-                "name": "Ward Security Level",
-                "description": "NHS Data Dictionary - Ward Security Level",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["administrative", "mental health", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-            {
-                "key": "zygosity_status",
-                "reference_url": "https://www.datadictionary.nhs.uk/data_elements/zygosity_status.html",
-                "name": "Zygosity Status",
-                "description": "NHS Data Dictionary - Zygosity Status",
-                "category": "nhs_dd",
-                "source_type": "scrape",
-                "is_custom": False,
-                "is_global": True,
-                "tags": ["neonatal", "paediatric", "medical", "NHS"],
-                "options": {"PENDING": "Data needs to be scraped from NHS DD"},
-                "format_pattern": "code - description",
-            },
-        ]
+        # Read datasets from markdown file
+        # Navigate from: checktick_app/surveys/management/commands/seed_nhs_datasets.py
+        # To: docs/nhs-data-dictionary-datasets.md
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+        markdown_file = base_dir / "docs" / "nhs-data-dictionary-datasets.md"
+
+        if not markdown_file.exists():
+            self.stdout.write(
+                self.style.ERROR(
+                    f"Markdown file not found: {markdown_file}\n"
+                    "Expected location: docs/nhs-data-dictionary-datasets.md"
+                )
+            )
+            return
+
+        self.stdout.write(f"Reading datasets from: {markdown_file}")
+
+        datasets = self._parse_markdown_table(markdown_file)
+
+        if not datasets:
+            self.stdout.write(self.style.WARNING("No datasets found in markdown file"))
+            return
+
+        self.stdout.write(f"Found {len(datasets)} datasets in markdown file\n")
 
         created_count = 0
         updated_count = 0
+        skipped_count = 0
 
-        for dataset_data in nhs_dd_datasets:
-            dataset, created = DataSet.objects.update_or_create(
-                key=dataset_data["key"],
-                defaults=dataset_data,
-            )
-            if created:
-                created_count += 1
+        for dataset_data in datasets:
+            try:
+                # Check if dataset already exists
+                existing = DataSet.objects.filter(key=dataset_data["key"]).first()
+
+                if existing:
+                    # Update existing dataset metadata (but preserve options if already scraped)
+                    if existing.options and existing.options != {
+                        "PENDING": "Awaiting scrape"
+                    }:
+                        # Already has scraped data, don't overwrite
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"⊝ Skipped '{dataset_data['name']}' - already exists with scraped data"
+                            )
+                        )
+                        skipped_count += 1
+                        continue
+
+                    # Update metadata
+                    existing.name = dataset_data["name"]
+                    existing.description = dataset_data["description"]
+                    existing.reference_url = dataset_data["reference_url"]
+                    existing.tags = dataset_data["tags"]
+                    existing.save()
+
+                    self.stdout.write(
+                        self.style.SUCCESS(f"↻ Updated '{dataset_data['name']}'")
+                    )
+                    updated_count += 1
+                else:
+                    # Create new dataset
+                    DataSet.objects.create(**dataset_data)
+                    self.stdout.write(
+                        self.style.SUCCESS(f"✓ Created '{dataset_data['name']}'")
+                    )
+                    created_count += 1
+
+            except Exception as e:
                 self.stdout.write(
-                    self.style.SUCCESS(f"✓ Created: {dataset.name} ({dataset.key})")
-                )
-            else:
-                updated_count += 1
-                self.stdout.write(
-                    self.style.WARNING(f"↻ Updated: {dataset.name} ({dataset.key})")
+                    self.style.ERROR(
+                        f"✗ Error processing '{dataset_data.get('name', 'unknown')}': {e}"
+                    )
                 )
 
+        # Summary
         self.stdout.write("\n" + "=" * 60)
+        self.stdout.write(self.style.SUCCESS(f"✓ Created: {created_count}"))
+        self.stdout.write(self.style.SUCCESS(f"↻ Updated: {updated_count}"))
+        if skipped_count:
+            self.stdout.write(self.style.WARNING(f"⊝ Skipped: {skipped_count}"))
+        self.stdout.write("=" * 60)
         self.stdout.write(
-            self.style.SUCCESS(
-                f"\n✓ Seeding complete: {created_count} created, {updated_count} updated"
-            )
+            f"\nTotal NHS DD datasets: {DataSet.objects.filter(category='nhs_dd').count()}"
         )
-        self.stdout.write(
-            f"  Total NHS DD datasets: {DataSet.objects.filter(category='nhs_dd').count()}\n"
-        )
+
+    def _parse_markdown_table(self, file_path: Path) -> list[dict]:
+        """
+        Parse the NHS DD datasets markdown table.
+
+        Expected format:
+        | Dataset Name | NHS DD URL | Categories | Date Added | Last Scraped | NHS DD Published |
+        |--------------|------------|------------|------------|--------------|------------------|
+        | Name | [Link](url) | tag1, tag2 | date | status | - |
+
+        Returns:
+            List of dataset dictionaries ready for DataSet.objects.create()
+        """
+        content = file_path.read_text(encoding="utf-8")
+        datasets = []
+
+        # Find the table section
+        lines = content.split("\n")
+        in_table = False
+        header_passed = False
+
+        for line in lines:
+            line = line.strip()
+
+            # Skip empty lines
+            if not line:
+                continue
+
+            # Detect table start
+            if line.startswith("| Dataset Name"):
+                in_table = True
+                continue
+
+            # Skip separator line
+            if in_table and not header_passed and line.startswith("|---"):
+                header_passed = True
+                continue
+
+            # Parse data rows
+            if in_table and header_passed and line.startswith("|"):
+                # Stop at end of table (next section starts)
+                if line.startswith("##"):
+                    break
+
+                # Split by pipes and clean
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) < 7:  # Need at least 7 parts (including empty first/last)
+                    continue
+
+                # Extract fields
+                name = parts[1].strip()
+                url_match = re.search(r"\[Link\]\((https?://[^\)]+)\)", parts[2])
+                categories = parts[3].strip()
+
+                if not name or not url_match:
+                    continue
+
+                url = url_match.group(1)
+
+                # Parse tags
+                tags = [tag.strip() for tag in categories.split(",") if tag.strip()]
+                tags.append("NHS")  # Add NHS tag to all
+
+                # Generate key from name
+                key = slugify(name.lower().replace(" ", "_"))
+
+                # Create dataset dict
+                dataset = {
+                    "key": key,
+                    "name": name,
+                    "description": f"NHS Data Dictionary - {name}",
+                    "category": "nhs_dd",
+                    "source_type": "scrape",
+                    "reference_url": url,
+                    "is_custom": False,
+                    "is_global": True,
+                    "tags": tags,
+                    "options": {"PENDING": "Awaiting scrape"},
+                }
+
+                datasets.append(dataset)
+
+        return datasets

@@ -63,11 +63,23 @@ This creates and populates 7 datasets:
 
 ## Scheduled Synchronization
 
-To keep datasets current, schedule regular sync commands.
+CheckTick uses **two automated cron jobs** to keep datasets up-to-date:
+
+1. **NHS Data Dictionary Scraping** - Scrapes NHS DD website for standardized codes
+2. **External API Sync** - Syncs organizational data from RCPCH API
+
+You do **not** need to run `seed_nhs_datasets` or `seed_external_datasets` in cron - these are one-time setup commands. The scrape and sync commands handle everything after initial setup.
 
 ### NHS Data Dictionary Scraping
 
 **Recommended schedule:** Weekly (Sundays at 5 AM UTC)
+
+**What it does:**
+
+- Reads dataset list from `docs/nhs-data-dictionary-datasets.md`
+- Creates any new dataset records (if added to markdown)
+- Scrapes NHS DD website for each dataset
+- Updates options with latest codes and descriptions
 
 ```cron
 0 5 * * 0 cd /app && python manage.py scrape_nhs_dd_datasets
@@ -78,16 +90,22 @@ To keep datasets current, schedule regular sync commands.
 1. Create a new Cron Job service
 2. Configure:
    - **Name**: `checktick-nhs-dd-scrape`
-   - **Schedule**: `0 5 * * 0`
+   - **Schedule**: `0 5 * * 0` (weekly)
    - **Command**: `python manage.py scrape_nhs_dd_datasets`
 3. Copy environment variables from web service
 4. Deploy
 
-See [Self-hosting Scheduled Tasks](self-hosting-scheduled-tasks.md#4-nhs-data-dictionary-scraping-recommended) for full setup details.
+See [Self-hosting Scheduled Tasks](/docs/self-hosting-scheduled-tasks/) for full setup details.
 
 ### External API Sync
 
 **Recommended schedule:** Daily (4 AM UTC)
+
+**What it does:**
+
+- Fetches latest organizational data from RCPCH API
+- Updates hospitals, trusts, health boards, etc.
+- Increments version numbers for change tracking
 
 ```cron
 0 4 * * * cd /app && python manage.py sync_external_datasets
@@ -98,21 +116,21 @@ See [Self-hosting Scheduled Tasks](self-hosting-scheduled-tasks.md#4-nhs-data-di
 1. Create a new Cron Job service
 2. Configure:
    - **Name**: `checktick-dataset-sync`
-   - **Schedule**: `0 4 * * *`
+   - **Schedule**: `0 4 * * *` (daily)
    - **Command**: `python manage.py sync_external_datasets`
 3. Copy environment variables from web service
 4. Deploy
 
-See [Self-hosting Scheduled Tasks](self-hosting-scheduled-tasks.md#3-external-dataset-sync-recommended) for full setup details.
+See [Self-hosting Scheduled Tasks](/docs/self-hosting-scheduled-tasks/) for full setup details.
 
 ## Management Commands
 
 ### seed_nhs_datasets
 
-Create NHS Data Dictionary dataset records.
+**One-time setup command** - Reads dataset definitions from `docs/nhs-data-dictionary-datasets.md` and creates database records.
 
 ```bash
-# Create all NHS DD dataset records
+# Create all NHS DD dataset records from markdown
 python manage.py seed_nhs_datasets
 
 # Clear existing and re-seed
@@ -121,19 +139,23 @@ python manage.py seed_nhs_datasets --clear
 
 **What it does:**
 
-- Creates 48 NHS DD dataset records with metadata
+- Parses markdown table in `docs/nhs-data-dictionary-datasets.md`
+- Creates dataset records with metadata (name, URL, categories)
 - Sets `source_type="scrape"` and `reference_url` fields
-- Options initially set to placeholder (requires scraping)
+- Options initially set to `{"PENDING": "Awaiting scrape"}`
+- Preserves existing options if dataset already exists
 
 **When to use:**
 
 - Initial setup
 - After database reset
-- When new NHS DD datasets are added to seed file
+- Manually triggering dataset creation (though `scrape_nhs_dd_datasets` does this automatically)
+
+**Note:** You typically don't need to run this manually - `scrape_nhs_dd_datasets` automatically creates missing datasets from the markdown file before scraping.
 
 ### scrape_nhs_dd_datasets
 
-Scrape NHS Data Dictionary datasets from the NHS DD website.
+Scrape NHS Data Dictionary datasets from the NHS DD website. **Automatically creates missing datasets** from `docs/nhs-data-dictionary-datasets.md` before scraping.
 
 ```bash
 # Scrape all datasets that need updating
@@ -157,10 +179,11 @@ python manage.py scrape_nhs_dd_datasets --dry-run
 
 **What it does:**
 
-- Fetches HTML from NHS DD website
-- Parses tables/lists to extract codes and descriptions
-- Updates dataset options in database
-- Records `last_scraped` timestamp
+1. Reads `docs/nhs-data-dictionary-datasets.md` and creates any missing dataset records
+2. Fetches HTML from NHS DD website for each dataset
+3. Parses tables/lists to extract codes and descriptions
+4. Updates dataset options in database
+5. Records `last_scraped` timestamp
 
 **Example output:**
 
@@ -341,6 +364,7 @@ tags = JSONField(default=list)
 **Solutions:**
 
 1. Check if NHS DD page structure changed:
+
    ```bash
    curl https://www.datadictionary.nhs.uk/data_elements/smoking_status_code.html
    ```
@@ -371,7 +395,7 @@ tags = JSONField(default=list)
 
 **Solutions:**
 
-1. Check RCPCH API status: https://api.rcpch.ac.uk/
+1. Check RCPCH API status: <https://api.rcpch.ac.uk/>
 2. Verify `EXTERNAL_DATASET_API_URL` environment variable
 3. Check firewall/proxy settings
 4. Retry with `--force`
@@ -395,6 +419,7 @@ tags = JSONField(default=list)
 **Solutions:**
 
 1. Sync specific datasets instead of all:
+
    ```bash
    python manage.py sync_external_datasets --dataset hospitals_england_wales
    ```
