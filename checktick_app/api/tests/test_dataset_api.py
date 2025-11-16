@@ -1,8 +1,8 @@
 """
 Tests for external dataset API endpoints.
 
-These tests verify authentication, permissions, caching, error handling,
-and response formats for the dataset endpoints.
+These tests verify authentication, permissions, and response formats
+for the dataset endpoints.
 
 Permission Model:
 - Dataset endpoints require authentication (IsAuthenticated)
@@ -10,6 +10,9 @@ Permission Model:
 - This is intentional: datasets are reference data (hospitals, trusts) that
   any authenticated user might need when building surveys
 - The actual survey editing is protected by survey-level permissions
+
+NOTE: These tests use database-backed datasets, not API mocks.
+External datasets are synced to the database via sync_external_datasets command.
 """
 
 import json
@@ -21,8 +24,7 @@ import pytest
 import requests
 from rest_framework.test import APIClient
 
-from checktick_app.surveys.external_datasets import AVAILABLE_DATASETS
-from checktick_app.surveys.models import Organization, OrganizationMembership
+from checktick_app.surveys.models import DataSet, Organization, OrganizationMembership
 
 User = get_user_model()
 TEST_PASSWORD = "testpass123"
@@ -126,6 +128,81 @@ def clear_cache_between_tests():
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def seed_test_datasets(db):
+    """Seed external datasets in database for all tests."""
+    # Create hospitals dataset
+    DataSet.objects.create(
+        key="hospitals_england_wales",
+        name="Hospitals (England & Wales)",
+        description="Test dataset for hospitals",
+        category="rcpch",
+        source_type="api",
+        is_custom=False,
+        is_global=True,
+        options=[
+            "ADDENBROOKE'S HOSPITAL (RGT01)",
+            "AIREDALE GENERAL HOSPITAL (RCF22)",
+            "ALDER HEY CHILDREN'S HOSPITAL (RBS25)",
+        ],
+        sync_frequency_hours=24,
+    )
+
+    # Create NHS trusts dataset
+    DataSet.objects.create(
+        key="nhs_trusts",
+        name="NHS Trusts",
+        description="Test dataset for NHS trusts",
+        category="rcpch",
+        source_type="api",
+        is_custom=False,
+        is_global=True,
+        options=[
+            "AIREDALE NHS FOUNDATION TRUST (RCF)",
+            "ALDER HEY CHILDREN'S NHS FOUNDATION TRUST (RBS)",
+        ],
+        sync_frequency_hours=24,
+    )
+
+    # Create Welsh LHBs dataset
+    DataSet.objects.create(
+        key="welsh_lhbs",
+        name="Welsh Local Health Boards",
+        description="Test dataset for Welsh LHBs",
+        category="rcpch",
+        source_type="api",
+        is_custom=False,
+        is_global=True,
+        options=[
+            "Swansea Bay University Health Board (7A3)",
+            "  CHILD DEVELOPMENT UNIT (7A3LW)",
+            "  MORRISTON HOSPITAL (7A3C7)",
+            "  NEATH PORT TALBOT HOSPITAL (7A3CJ)",
+            "Cardiff and Vale University Health Board (7A4)",
+            "  UNIVERSITY HOSPITAL OF WALES (7A4BV)",
+        ],
+        sync_frequency_hours=24,
+    )
+
+    # Create other datasets (minimal) to match AVAILABLE_DATASETS count
+    for key, name in [
+        ("london_boroughs", "London Boroughs"),
+        ("nhs_england_regions", "NHS England Regions"),
+        ("paediatric_diabetes_units", "Paediatric Diabetes Units"),
+        ("integrated_care_boards", "Integrated Care Boards (ICBs)"),
+    ]:
+        DataSet.objects.create(
+            key=key,
+            name=name,
+            category="rcpch",
+            source_type="api",
+            is_custom=False,
+            is_global=True,
+            options=[f"Test {name} Option 1", f"Test {name} Option 2"],
+            sync_frequency_hours=24,
+        )
+
+
 # ============================================================================
 # Authentication Tests
 # ============================================================================
@@ -141,16 +218,12 @@ def test_list_datasets_requires_authentication(client):
 @pytest.mark.django_db
 def test_get_dataset_requires_authentication(client):
     """Anonymous users CAN get dataset details (needed for public surveys)."""
-    # Mock the external API call with realistic response
-    with patch("checktick_app.surveys.external_datasets.requests.get") as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = get_mock_hospital_response()
-        mock_get.return_value = mock_response
-
-        resp = client.get("/api/datasets/hospitals_england_wales/")
-        # Changed to AllowAny to support professional field dropdowns in public surveys
-        assert resp.status_code == 200
+    resp = client.get("/api/datasets/hospitals_england_wales/")
+    # Datasets are available without auth for public surveys
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["dataset_key"] == "hospitals_england_wales"
+    assert len(data["options"]) == 3
 
 
 @pytest.mark.django_db
@@ -165,16 +238,8 @@ def test_list_datasets_authenticated_allowed(client, authenticated_user):
 def test_get_dataset_authenticated_allowed(client, authenticated_user):
     """Authenticated users can get dataset details."""
     hdrs = auth_hdr(client, "testuser", TEST_PASSWORD)
-
-    # Mock the external API call with realistic response
-    with patch("checktick_app.surveys.external_datasets.requests.get") as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = get_mock_hospital_response()
-        mock_get.return_value = mock_response
-
-        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
-        assert resp.status_code == 200
+    resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
+    assert resp.status_code == 200
 
 
 # ============================================================================
