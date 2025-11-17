@@ -1160,29 +1160,29 @@
   }
 
   // Handle initial tab selection from data attribute
-  const scriptTag = document.querySelector('script[data-initial-tab]');
+  const scriptTag = document.querySelector("script[data-initial-tab]");
   if (scriptTag) {
     const initialTab = scriptTag.dataset.initialTab;
-    if (initialTab === 'ai') {
-      const tabAi = document.getElementById('tab-ai');
-      const manualContent = document.getElementById('manual-tab-content');
-      const aiContent = document.getElementById('ai-tab-content');
-      const historyContent = document.getElementById('history-tab-content');
+    if (initialTab === "ai") {
+      const tabAi = document.getElementById("tab-ai");
+      const manualContent = document.getElementById("manual-tab-content");
+      const aiContent = document.getElementById("ai-tab-content");
+      const historyContent = document.getElementById("history-tab-content");
 
       if (tabAi) tabAi.checked = true;
-      if (manualContent) manualContent.classList.add('hidden');
-      if (aiContent) aiContent.classList.remove('hidden');
-      if (historyContent) historyContent.classList.add('hidden');
-    } else if (initialTab === 'history') {
-      const tabHistory = document.getElementById('tab-history');
-      const manualContent = document.getElementById('manual-tab-content');
-      const aiContent = document.getElementById('ai-tab-content');
-      const historyContent = document.getElementById('history-tab-content');
+      if (manualContent) manualContent.classList.add("hidden");
+      if (aiContent) aiContent.classList.remove("hidden");
+      if (historyContent) historyContent.classList.add("hidden");
+    } else if (initialTab === "history") {
+      const tabHistory = document.getElementById("tab-history");
+      const manualContent = document.getElementById("manual-tab-content");
+      const aiContent = document.getElementById("ai-tab-content");
+      const historyContent = document.getElementById("history-tab-content");
 
       if (tabHistory) tabHistory.checked = true;
-      if (manualContent) manualContent.classList.add('hidden');
-      if (aiContent) aiContent.classList.add('hidden');
-      if (historyContent) historyContent.classList.remove('hidden');
+      if (manualContent) manualContent.classList.add("hidden");
+      if (aiContent) aiContent.classList.add("hidden");
+      if (historyContent) historyContent.classList.remove("hidden");
     }
     // manual is default, already checked in HTML
   }

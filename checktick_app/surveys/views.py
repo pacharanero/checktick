@@ -5628,11 +5628,10 @@ def _handle_llm_ai_chat(
             yield f"data: {json.dumps({'error': 'An error occurred processing your request'})}\n\n"
 
     response = StreamingHttpResponse(
-        stream_response(),
-        content_type='text/event-stream'
+        stream_response(), content_type="text/event-stream"
     )
-    response['Cache-Control'] = 'no-cache'
-    response['X-Accel-Buffering'] = 'no'
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
     return response
 
 
@@ -5758,9 +5757,9 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
 
     # Original bulk upload logic continues
     # Get tab parameter from URL to pre-select a tab
-    initial_tab = request.GET.get('tab', 'manual')  # default to manual
-    if initial_tab not in ['manual', 'ai', 'history']:
-        initial_tab = 'manual'
+    initial_tab = request.GET.get("tab", "manual")  # default to manual
+    if initial_tab not in ["manual", "ai", "history"]:
+        initial_tab = "manual"
 
     # Check if survey has existing questions and export to markdown
     has_questions = survey.question_groups.filter(
@@ -5989,9 +5988,11 @@ def _export_survey_to_markdown(survey: Survey) -> str:
     from collections import defaultdict
 
     # Get all collections for this survey
-    collections = CollectionDefinition.objects.filter(
-        survey=survey
-    ).select_related('parent').prefetch_related('items')
+    collections = (
+        CollectionDefinition.objects.filter(survey=survey)
+        .select_related("parent")
+        .prefetch_related("items")
+    )
 
     # Build collection hierarchy
     parent_collections = {}
@@ -6004,27 +6005,33 @@ def _export_survey_to_markdown(survey: Survey) -> str:
             child_collections[coll.parent_id].append(coll)
 
     # Get all question groups for this survey
-    groups = survey.question_groups.all().prefetch_related(
-        models.Prefetch(
-            'surveyquestion_set',
-            queryset=SurveyQuestion.objects.filter(survey=survey).order_by('order')
+    groups = (
+        survey.question_groups.all()
+        .prefetch_related(
+            models.Prefetch(
+                "surveyquestion_set",
+                queryset=SurveyQuestion.objects.filter(survey=survey).order_by("order"),
+            )
         )
-    ).order_by('id')
+        .order_by("id")
+    )
 
     # Build markdown
     lines = []
 
     for group in groups:
         # Check if this group is part of a collection
-        parent_coll_item = CollectionItem.objects.filter(
-            group=group,
-            collection__parent__isnull=True
-        ).select_related('collection').first()
+        parent_coll_item = (
+            CollectionItem.objects.filter(group=group, collection__parent__isnull=True)
+            .select_related("collection")
+            .first()
+        )
 
-        child_coll_item = CollectionItem.objects.filter(
-            group=group,
-            collection__parent__isnull=False
-        ).select_related('collection').first()
+        child_coll_item = (
+            CollectionItem.objects.filter(group=group, collection__parent__isnull=False)
+            .select_related("collection")
+            .first()
+        )
 
         indent = ""
 
@@ -6032,9 +6039,11 @@ def _export_survey_to_markdown(survey: Survey) -> str:
         if child_coll_item:
             indent = "> "
             # Add REPEAT marker for child collection (only once per collection)
-            first_item = CollectionItem.objects.filter(
-                collection=child_coll_item.collection
-            ).order_by('order').first()
+            first_item = (
+                CollectionItem.objects.filter(collection=child_coll_item.collection)
+                .order_by("order")
+                .first()
+            )
             if first_item and first_item.group_id == group.id:
                 max_count = child_coll_item.collection.max_count or 0
                 if max_count > 0:
@@ -6045,9 +6054,11 @@ def _export_survey_to_markdown(survey: Survey) -> str:
         # If this is a parent collection group
         elif parent_coll_item:
             # Add REPEAT marker for parent collection (only once per collection)
-            first_item = CollectionItem.objects.filter(
-                collection=parent_coll_item.collection
-            ).order_by('order').first()
+            first_item = (
+                CollectionItem.objects.filter(collection=parent_coll_item.collection)
+                .order_by("order")
+                .first()
+            )
             if first_item and first_item.group_id == group.id:
                 max_count = parent_coll_item.collection.max_count or 0
                 if max_count > 0:
@@ -6056,7 +6067,7 @@ def _export_survey_to_markdown(survey: Survey) -> str:
                     lines.append("REPEAT")
 
         # Add group heading
-        group_ref = group.name.lower().replace(' ', '-')
+        group_ref = group.name.lower().replace(" ", "-")
         lines.append(f"{indent}# {group.name} {{{group_ref}}}")
         if group.description:
             lines.append(f"{indent}{group.description}")
@@ -6065,30 +6076,40 @@ def _export_survey_to_markdown(survey: Survey) -> str:
         # Add questions
         for question in group.surveyquestion_set.all():
             required = "*" if question.required else ""
-            question_ref = question.text.lower()[:30].replace(' ', '-').strip('-')
+            question_ref = question.text.lower()[:30].replace(" ", "-").strip("-")
             lines.append(f"{indent}## {question.text}{required} {{{question_ref}}}")
 
             # Question type
             lines.append(f"{indent}({question.type})")
 
             # Options for question types that need them
-            if question.type in ['mc_single', 'mc_multi', 'dropdown', 'orderable', 'yesno', 'image', 'likert categories']:
+            if question.type in [
+                "mc_single",
+                "mc_multi",
+                "dropdown",
+                "orderable",
+                "yesno",
+                "image",
+                "likert categories",
+            ]:
                 if question.options:
                     for option in question.options:
-                        option_text = option.get('text', '')
+                        option_text = option.get("text", "")
                         lines.append(f"{indent}- {option_text}")
                         # Check for follow-up text
-                        if option.get('has_followup_text'):
-                            followup_label = option.get('followup_text_label', 'Please specify')
+                        if option.get("has_followup_text"):
+                            followup_label = option.get(
+                                "followup_text_label", "Please specify"
+                            )
                             lines.append(f"{indent}  + {followup_label}")
 
             # Likert number settings
-            elif question.type == 'likert number':
+            elif question.type == "likert number":
                 if question.options:
-                    min_val = question.options.get('min')
-                    max_val = question.options.get('max')
-                    left_label = question.options.get('left_label', '')
-                    right_label = question.options.get('right_label', '')
+                    min_val = question.options.get("min")
+                    max_val = question.options.get("max")
+                    left_label = question.options.get("left_label", "")
+                    right_label = question.options.get("right_label", "")
 
                     if min_val is not None:
                         lines.append(f"{indent}min: {min_val}")
@@ -6105,11 +6126,19 @@ def _export_survey_to_markdown(survey: Survey) -> str:
                 operator = condition.operator
                 value = condition.value or ""
                 if condition.target_question:
-                    target_ref = condition.target_question.text.lower()[:30].replace(' ', '-').strip('-')
-                    lines.append(f"{indent}? when {operator} {value} -> {{{target_ref}}}")
+                    target_ref = (
+                        condition.target_question.text.lower()[:30]
+                        .replace(" ", "-")
+                        .strip("-")
+                    )
+                    lines.append(
+                        f"{indent}? when {operator} {value} -> {{{target_ref}}}"
+                    )
                 elif condition.target_group:
-                    target_ref = condition.target_group.name.lower().replace(' ', '-')
-                    lines.append(f"{indent}? when {operator} {value} -> {{{target_ref}}}")
+                    target_ref = condition.target_group.name.lower().replace(" ", "-")
+                    lines.append(
+                        f"{indent}? when {operator} {value} -> {{{target_ref}}}"
+                    )
 
             lines.append("")
 

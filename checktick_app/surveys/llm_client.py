@@ -212,7 +212,7 @@ class ConversationalSurveyLLM:
                     content = content.strip()
                     # Remove ```markdown and ``` wrappers
                     if content.startswith("```markdown"):
-                        content = content[len("```markdown"):].strip()
+                        content = content[len("```markdown") :].strip()
                     elif content.startswith("```"):
                         content = content[3:].strip()
                     if content.endswith("```"):
@@ -274,25 +274,25 @@ class ConversationalSurveyLLM:
                 if not line:
                     continue
 
-                line = line.decode('utf-8')
+                line = line.decode("utf-8")
 
                 # Skip SSE comments and empty lines
-                if line.startswith(':') or not line.strip():
+                if line.startswith(":") or not line.strip():
                     continue
 
                 # Parse SSE data
-                if line.startswith('data: '):
+                if line.startswith("data: "):
                     data_str = line[6:]
 
                     # Check for end of stream
-                    if data_str == '[DONE]':
+                    if data_str == "[DONE]":
                         break
 
                     try:
                         data = json.loads(data_str)
-                        if 'choices' in data and len(data['choices']) > 0:
-                            delta = data['choices'][0].get('delta', {})
-                            chunk = delta.get('content', '')
+                        if "choices" in data and len(data["choices"]) > 0:
+                            delta = data["choices"][0].get("delta", {})
+                            chunk = delta.get("content", "")
 
                             if chunk:
                                 # Stream each character
