@@ -1128,7 +1128,8 @@ class LLMConversationSession(models.Model):
 
     # Conversation state
     conversation_history = models.JSONField(
-        default=list, help_text="List of {role, content, timestamp} message dictionaries"
+        default=list,
+        help_text="List of {role, content, timestamp} message dictionaries",
     )
     current_markdown = models.TextField(
         blank=True, help_text="Latest generated markdown"

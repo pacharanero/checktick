@@ -34,14 +34,14 @@ from django_ratelimit.decorators import ratelimit
 
 from .color import hex_to_oklch
 from .external_datasets import get_available_datasets
-from .markdown_import import BulkParseError, parse_bulk_markdown_with_collections
 from .llm_client import ConversationalSurveyLLM
+from .markdown_import import BulkParseError, parse_bulk_markdown_with_collections
 from .models import (
     AuditLog,
     CollectionDefinition,
-    LLMConversationSession,
     CollectionItem,
     DataSet,
+    LLMConversationSession,
     Organization,
     OrganizationMembership,
     QuestionGroup,
@@ -5242,7 +5242,9 @@ def _handle_llm_new_session(request: HttpRequest, survey: Survey) -> JsonRespons
     Security: Only authenticated users with edit permission can create sessions.
     """
     if not settings.LLM_ENABLED:
-        return JsonResponse({"status": "error", "message": "AI generation not available"}, status=400)
+        return JsonResponse(
+            {"status": "error", "message": "AI generation not available"}, status=400
+        )
 
     # Deactivate any existing session
     LLMConversationSession.objects.filter(
@@ -5250,10 +5252,7 @@ def _handle_llm_new_session(request: HttpRequest, survey: Survey) -> JsonRespons
     ).update(is_active=False)
 
     # Create new session
-    session = LLMConversationSession.objects.create(
-        survey=survey,
-        user=request.user
-    )
+    session = LLMConversationSession.objects.create(survey=survey, user=request.user)
 
     # Audit log
     AuditLog.objects.create(
@@ -5262,14 +5261,16 @@ def _handle_llm_new_session(request: HttpRequest, survey: Survey) -> JsonRespons
         survey=survey,
         action=AuditLog.Action.ADD,
         target_user=request.user,
-        metadata={"action": "llm_session_started", "session_id": str(session.id)}
+        metadata={"action": "llm_session_started", "session_id": str(session.id)},
     )
 
-    return JsonResponse({
-        "status": "success",
-        "session_id": str(session.id),
-        "message": "New conversation started"
-    })
+    return JsonResponse(
+        {
+            "status": "success",
+            "session_id": str(session.id),
+            "message": "New conversation started",
+        }
+    )
 
 
 def _handle_llm_send_message(request: HttpRequest, survey: Survey) -> JsonResponse:
@@ -5278,7 +5279,9 @@ def _handle_llm_send_message(request: HttpRequest, survey: Survey) -> JsonRespon
     Security: Session must belong to requesting user, no survey modification occurs here.
     """
     if not settings.LLM_ENABLED:
-        return JsonResponse({"status": "error", "message": "AI generation not available"}, status=400)
+        return JsonResponse(
+            {"status": "error", "message": "AI generation not available"}, status=400
+        )
 
     # Get user's active session
     session = LLMConversationSession.objects.filter(
@@ -5286,11 +5289,15 @@ def _handle_llm_send_message(request: HttpRequest, survey: Survey) -> JsonRespon
     ).first()
 
     if not session:
-        return JsonResponse({"status": "error", "message": "No active session"}, status=400)
+        return JsonResponse(
+            {"status": "error", "message": "No active session"}, status=400
+        )
 
     user_message = request.POST.get("message", "").strip()
     if not user_message:
-        return JsonResponse({"status": "error", "message": "Message cannot be empty"}, status=400)
+        return JsonResponse(
+            {"status": "error", "message": "Message cannot be empty"}, status=400
+        )
 
     # Add user message to history
     session.add_message("user", user_message)
@@ -5301,10 +5308,10 @@ def _handle_llm_send_message(request: HttpRequest, survey: Survey) -> JsonRespon
         llm_response = llm_client.chat(session.get_conversation_for_llm())
 
         if not llm_response:
-            return JsonResponse({
-                "status": "error",
-                "message": "Failed to get response from AI"
-            }, status=500)
+            return JsonResponse(
+                {"status": "error", "message": "Failed to get response from AI"},
+                status=500,
+            )
 
         # Add assistant response to history
         session.add_message("assistant", llm_response)
@@ -5340,31 +5347,32 @@ def _handle_llm_send_message(request: HttpRequest, survey: Survey) -> JsonRespon
             metadata={
                 "action": "llm_message_sent",
                 "session_id": str(session.id),
-                "markdown_valid": markdown_valid
+                "markdown_valid": markdown_valid,
+            },
+        )
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "assistant_message": llm_response,
+                "markdown": markdown if markdown else session.current_markdown,
+                "markdown_valid": markdown_valid,
+                "validation_errors": validation_errors,
+                "timestamp": timezone.now().isoformat(),
             }
         )
 
-        return JsonResponse({
-            "status": "success",
-            "assistant_message": llm_response,
-            "markdown": markdown if markdown else session.current_markdown,
-            "markdown_valid": markdown_valid,
-            "validation_errors": validation_errors,
-            "timestamp": timezone.now().isoformat()
-        })
-
     except ValueError as e:
         logger.error(f"LLM configuration error: {e}")
-        return JsonResponse({
-            "status": "error",
-            "message": "AI generation not properly configured"
-        }, status=500)
+        return JsonResponse(
+            {"status": "error", "message": "AI generation not properly configured"},
+            status=500,
+        )
     except Exception as e:
         logger.error(f"LLM chat error: {e}", exc_info=True)
-        return JsonResponse({
-            "status": "error",
-            "message": "Unexpected error occurred"
-        }, status=500)
+        return JsonResponse(
+            {"status": "error", "message": "Unexpected error occurred"}, status=500
+        )
 
 
 def _handle_llm_new_session(request: HttpRequest, survey: Survey) -> JsonResponse:
@@ -5380,9 +5388,7 @@ def _handle_llm_new_session(request: HttpRequest, survey: Survey) -> JsonRespons
     ).update(is_active=False)
 
     # Create new session
-    session = LLMConversationSession.objects.create(
-        survey=survey, user=request.user
-    )
+    session = LLMConversationSession.objects.create(survey=survey, user=request.user)
 
     # Log audit
     AuditLog.objects.create(
@@ -5512,7 +5518,10 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
     llm_enabled = settings.LLM_ENABLED
 
     # Handle AJAX requests for LLM functionality
-    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if (
+        request.method == "POST"
+        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    ):
         action = request.POST.get("action")
 
         if action == "new_session":

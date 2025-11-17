@@ -12,20 +12,21 @@ Tests critical security requirements:
 
 from __future__ import annotations
 
-from django.contrib.auth.models import User
-from django.test import Client, override_settings
-from django.urls import reverse
-import pytest
 import json
 
+from django.contrib.auth.models import User
+from django.test import override_settings
+from django.urls import reverse
+import pytest
+
+from checktick_app.surveys.llm_client import ConversationalSurveyLLM
 from checktick_app.surveys.models import (
     LLMConversationSession,
     Organization,
     OrganizationMembership,
-    Survey,
     QuestionGroup,
+    Survey,
 )
-from checktick_app.surveys.llm_client import ConversationalSurveyLLM
 
 TEST_PASSWORD = "secure-test-password"
 
@@ -36,8 +37,12 @@ def users(db):
     org_owner = User.objects.create_user(username="org_owner", password=TEST_PASSWORD)
     org_admin = User.objects.create_user(username="org_admin", password=TEST_PASSWORD)
     org_member = User.objects.create_user(username="org_member", password=TEST_PASSWORD)
-    survey_creator = User.objects.create_user(username="creator", password=TEST_PASSWORD)
-    individual_user = User.objects.create_user(username="individual", password=TEST_PASSWORD)
+    survey_creator = User.objects.create_user(
+        username="creator", password=TEST_PASSWORD
+    )
+    individual_user = User.objects.create_user(
+        username="individual", password=TEST_PASSWORD
+    )
     outsider = User.objects.create_user(username="outsider", password=TEST_PASSWORD)
 
     return {
@@ -53,7 +58,9 @@ def users(db):
 @pytest.fixture
 def org(db, users):
     """Create organization with memberships."""
-    org = Organization.objects.create(name="Test Healthcare Org", owner=users["org_owner"])
+    org = Organization.objects.create(
+        name="Test Healthcare Org", owner=users["org_owner"]
+    )
 
     # Add admin
     OrganizationMembership.objects.create(
@@ -115,9 +122,7 @@ class TestLLMAccessControl:
         """Anonymous users cannot create LLM sessions."""
         url = reverse("surveys:bulk_upload", kwargs={"slug": org_survey.slug})
         resp = client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
         assert resp.status_code in (302, 401, 403)
 
@@ -165,7 +170,9 @@ class TestLLMAccessControl:
 
     @pytest.mark.django_db
     @override_settings(LLM_ENABLED=True)
-    def test_individual_user_can_access_own_survey_llm(self, client, users, individual_survey):
+    def test_individual_user_can_access_own_survey_llm(
+        self, client, users, individual_survey
+    ):
         """Individual account holders can use LLM on their own surveys."""
         client.force_login(users["individual_user"])
         url = reverse("surveys:bulk_upload", kwargs={"slug": individual_survey.slug})
@@ -184,7 +191,9 @@ class TestLLMReadOnlyOperations:
 
     @pytest.mark.django_db
     @override_settings(LLM_ENABLED=True)
-    def test_llm_session_creation_does_not_modify_survey(self, client, users, org_survey):
+    def test_llm_session_creation_does_not_modify_survey(
+        self, client, users, org_survey
+    ):
         """Creating LLM session does not modify survey structure."""
         client.force_login(users["survey_creator"])
         url = reverse("surveys:bulk_upload", kwargs={"slug": org_survey.slug})
@@ -195,9 +204,7 @@ class TestLLMReadOnlyOperations:
 
         # Create LLM session
         resp = client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
 
         assert resp.status_code == 200
@@ -210,17 +217,21 @@ class TestLLMReadOnlyOperations:
         assert org_survey.question_groups.count() == initial_group_count
 
     @pytest.mark.django_db
-    @override_settings(LLM_ENABLED=True, RCPCH_OLLAMA_API_URL="http://test", RCPCH_OLLAMA_API_KEY="test")
-    def test_llm_send_message_does_not_modify_survey(self, client, users, org_survey, monkeypatch):
+    @override_settings(
+        LLM_ENABLED=True,
+        RCPCH_OLLAMA_API_URL="http://test",
+        RCPCH_OLLAMA_API_KEY="test",
+    )
+    def test_llm_send_message_does_not_modify_survey(
+        self, client, users, org_survey, monkeypatch
+    ):
         """Sending LLM message does not create/modify survey questions."""
         client.force_login(users["survey_creator"])
         url = reverse("surveys:bulk_upload", kwargs={"slug": org_survey.slug})
 
         # Create session first
         client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
 
         # Mock LLM response
@@ -240,7 +251,11 @@ class TestLLMReadOnlyOperations:
 - Other
 ```"""
 
-        monkeypatch.setattr(ConversationalSurveyLLM, "chat", lambda self, history, temp=None: mock_chat(history, temp))
+        monkeypatch.setattr(
+            ConversationalSurveyLLM,
+            "chat",
+            lambda self, history, temp=None: mock_chat(history, temp),
+        )
 
         # Record initial state
         initial_question_count = org_survey.questions.count()
@@ -249,8 +264,11 @@ class TestLLMReadOnlyOperations:
         # Send message
         resp = client.post(
             url,
-            data={"action": "send_message", "message": "Create a patient demographics survey"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            data={
+                "action": "send_message",
+                "message": "Create a patient demographics survey",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
 
         assert resp.status_code == 200
@@ -274,7 +292,7 @@ class TestLLMReadOnlyOperations:
         group = QuestionGroup.objects.create(
             name="Existing Group",
             description="Should not be deleted by LLM",
-            owner=users["survey_creator"]
+            owner=users["survey_creator"],
         )
         org_survey.question_groups.add(group)
 
@@ -282,9 +300,7 @@ class TestLLMReadOnlyOperations:
 
         # Create LLM session and send message
         client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
 
         # Verify existing group still exists
@@ -309,9 +325,7 @@ class TestLLMSessionIsolation:
         # Creator creates session
         client.force_login(users["survey_creator"])
         resp1 = client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
         data1 = json.loads(resp1.content)
         session_id_1 = data1["session_id"]
@@ -319,9 +333,7 @@ class TestLLMSessionIsolation:
         # Admin creates session
         client.force_login(users["org_admin"])
         resp2 = client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
         data2 = json.loads(resp2.content)
         session_id_2 = data2["session_id"]
@@ -337,22 +349,33 @@ class TestLLMSessionIsolation:
         assert session2.user == users["org_admin"]
 
     @pytest.mark.django_db
-    @override_settings(LLM_ENABLED=True, RCPCH_OLLAMA_API_URL="http://test", RCPCH_OLLAMA_API_KEY="test")
-    def test_user_cannot_access_another_users_session(self, client, users, org_survey, monkeypatch):
+    @override_settings(
+        LLM_ENABLED=True,
+        RCPCH_OLLAMA_API_URL="http://test",
+        RCPCH_OLLAMA_API_KEY="test",
+    )
+    def test_user_cannot_access_another_users_session(
+        self, client, users, org_survey, monkeypatch
+    ):
         """User cannot send messages to another user session."""
-        url = reverse(
-            "surveys:bulk_upload", kwargs={"slug": org_survey.slug})
+        url = reverse("surveys:bulk_upload", kwargs={"slug": org_survey.slug})
 
         # Mock LLM
-        monkeypatch.setattr(ConversationalSurveyLLM, "chat", lambda self, history, temp=None: "Test response")
+        monkeypatch.setattr(
+            ConversationalSurveyLLM,
+            "chat",
+            lambda self, history, temp=None: "Test response",
+        )
 
         # Creator creates session and sends message
         client.force_login(users["survey_creator"])
-        client.post(url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        client.post(
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
         resp = client.post(
             url,
             data={"action": "send_message", "message": "Creator message"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         assert resp.status_code == 200
 
@@ -360,8 +383,11 @@ class TestLLMSessionIsolation:
         client.force_login(users["org_admin"])
         resp = client.post(
             url,
-            data={"action": "send_message", "message": "Admin trying to use creator session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            data={
+                "action": "send_message",
+                "message": "Admin trying to use creator session",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
 
         # Should fail because admin does not have active session
@@ -473,9 +499,7 @@ class TestLLMFeatureToggle:
         url = reverse("surveys:bulk_upload", kwargs={"slug": org_survey.slug})
 
         resp = client.post(
-            url,
-            data={"action": "new_session"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
 
         assert resp.status_code == 400
@@ -493,7 +517,7 @@ class TestLLMFeatureToggle:
         resp = client.post(
             url,
             data={"action": "send_message", "message": "test"},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
 
         assert resp.status_code == 400
@@ -549,13 +573,15 @@ class TestAJAXEndpointSecurity:
         url = reverse("surveys:bulk_upload", kwargs={"slug": org_survey.slug})
 
         # Create session
-        client.post(url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        client.post(
+            url, data={"action": "new_session"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
 
         # Try to send empty message
         resp = client.post(
             url,
             data={"action": "send_message", "message": "   "},
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
 
         assert resp.status_code == 400

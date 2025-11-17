@@ -5,12 +5,13 @@ This module provides a secure interface to the RCPCH Ollama LLM service
 for AI-assisted healthcare survey design.
 """
 
-import requests
-from typing import Dict, List, Optional
-from django.conf import settings
 import logging
-import re
 from pathlib import Path
+import re
+from typing import Dict, List, Optional
+
+from django.conf import settings
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,12 @@ def load_system_prompt_from_docs() -> str:
 
             if start_idx != -1 and end_idx != -1:
                 # Extract text between markers and clean up
-                prompt = content[start_idx + len(start_marker):end_idx].strip()
+                prompt = content[start_idx + len(start_marker) : end_idx].strip()
 
                 # Remove leading/trailing whitespace from each line while preserving structure
-                lines = prompt.split('\n')
+                lines = prompt.split("\n")
                 cleaned_lines = [line.rstrip() for line in lines]
-                prompt = '\n'.join(cleaned_lines).strip()
+                prompt = "\n".join(cleaned_lines).strip()
 
                 logger.info("Successfully loaded system prompt from documentation")
                 return prompt
@@ -178,7 +179,11 @@ class ConversationalSurveyLLM:
                         "Authorization": f"Bearer {self.api_key}",
                         "Content-Type": "application/json",
                     },
-                    json={"messages": messages, "temperature": temperature, "max_tokens": 2000},
+                    json={
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": 2000,
+                    },
                     timeout=self.timeout,
                 )
 
